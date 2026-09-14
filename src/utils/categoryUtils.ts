@@ -76,8 +76,38 @@ export const deleteTodoItem = (categories: Category[], todoId: string): Category
 };
 
 export const sortTodoItems = (items: TodoItemType[], sortCheckedToBottom: boolean): TodoItemType[] => {
-  if (!sortCheckedToBottom) return items;
-  return [...items].sort((a, b) => (a.completed === b.completed ? 0 : a.completed ? 1 : -1));
+  return [...items].sort((a, b) => {
+    // When "show checked at bottom" is enabled, checked items sink to the
+    // bottom regardless of whether they are starred.
+    if (sortCheckedToBottom && a.completed !== b.completed) {
+      return a.completed ? 1 : -1;
+    }
+
+    // Starred items float to the beginning of each group.
+    const aStarred = Boolean(a.starred);
+    const bStarred = Boolean(b.starred);
+    if (aStarred !== bStarred) {
+      return aStarred ? -1 : 1;
+    }
+
+    // Keep original (stable) order within equal groups.
+    return 0;
+  });
+};
+
+export const hasStarredTodoItems = (items: TodoItemType[]): boolean => {
+  return items.some((item) => {
+    // Only un-checked starred items count (so a fully-checked starred item
+    // no longer marks its category as starred).
+    if (item.starred && !item.completed) return true;
+    if (item.listItems && hasStarredTodoItems(item.listItems)) return true;
+    return false;
+  });
+};
+
+export const hasAnyStarredItems = (category: Category): boolean => {
+  if (hasStarredTodoItems(category.items)) return true;
+  return category.subcategories.some(hasAnyStarredItems);
 };
 
 export const countCompletedItems = (item: TodoItemType): { completed: number; total: number } => {
@@ -147,10 +177,19 @@ export const verifyAllChildrenCompleted = (item: TodoItemType): boolean => {
   });
 };
 
+export const migrateTodoItems = (items: TodoItemType[]): TodoItemType[] => {
+  return items.map((item) => ({
+    ...item,
+    starred: item.starred ?? false,
+    listItems: item.listItems ? migrateTodoItems(item.listItems) : item.listItems,
+  }));
+};
+
 export const migrateCategories = (categories: Category[]): Category[] => {
   return categories.map((cat) => ({
     ...cat,
     sortCheckedToBottom: cat.sortCheckedToBottom ?? false,
+    items: migrateTodoItems(cat.items),
     subcategories: migrateCategories(cat.subcategories),
   }));
 };

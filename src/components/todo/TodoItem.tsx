@@ -91,6 +91,11 @@ export const TodoItem: React.FC<TodoItemProps> = ({
     return item.title || '';
   };
 
+  const handleStarClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    onUpdateTodo(item.id, (t) => ({ starred: !t.starred }));
+  };
+
   const handleCopyClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     setOpenDropdownId(null);
@@ -199,6 +204,14 @@ export const TodoItem: React.FC<TodoItemProps> = ({
             onBlur={handleNotesBlur}
           />
         )}
+
+        <button
+          className={`icon-btn star-icon-btn ${item.starred && !item.completed ? 'is-starred' : ''}`}
+          onClick={handleStarClick}
+          title={item.starred ? (item.completed ? 'Unstar (checked)' : 'Unstar') : 'Star'}
+        >
+          <Icon name={item.starred ? 'ri-star-fill' : 'ri-star-line'} />
+        </button>
 
         <button
           className="icon-btn primary-icon-btn"

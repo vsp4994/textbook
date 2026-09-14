@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Icon } from '../components';
+import { Icon, JsonView } from '../components';
 import { useDriveSync } from '../sync/DriveSyncContext';
 import type { AppDocument } from '../types';
 
@@ -149,6 +149,16 @@ export const SyncPanel = ({ document, isDbAvailable }: SyncPanelProps) => {
       {!isDbAvailable && (
         <div className="db-alert">
           <Icon name="ri-alert-line" /> IndexedDB is unavailable. Changes only survive while this page stays open.
+        </div>
+      )}
+
+      {currentUser?.emailAddress === 'vsp4994@gmail.com' && document && (
+        <div className="debug-json-panel">
+          <div className="debug-json-header">
+            <Icon name="ri-code-box-line" /> Debug JSON
+            <span className="debug-json-user">{currentUser.emailAddress}</span>
+          </div>
+          <JsonView data={document} />
         </div>
       )}
     </div>

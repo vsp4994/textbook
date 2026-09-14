@@ -1,7 +1,7 @@
 import React from 'react';
 import { type Category as CategoryType, type TodoItemType } from '../../types';
 import { Icon } from '../Icon';
-import { countCategoryItems, hasAnyCompletedItems, uncheckAllItems, sortTodoItems } from '../../utils';
+import { countCategoryItems, hasAnyCompletedItems, uncheckAllItems, sortTodoItems, hasAnyStarredItems } from '../../utils';
 
 interface CategoryProps {
   category: CategoryType;
@@ -34,6 +34,7 @@ export const Category: React.FC<CategoryProps> = ({
   renderCategory,
 }) => {
   const counts = countCategoryItems(category);
+  const hasStarred = hasAnyStarredItems(category);
 
   const handleCategoryTitleClick = () => {
     onUpdateCategory(category.id, (c) => ({ collapsed: !c.collapsed }));
@@ -125,6 +126,7 @@ export const Category: React.FC<CategoryProps> = ({
           <button className="category-header-title-button" onClick={handleCategoryTitleClick} type='button'>
             <Icon name={category.collapsed ? "ri-arrow-right-s-line" : "ri-arrow-down-s-line"} className="fold-icon" />
             <span className="category-title">{category.title}</span>
+            {hasStarred && <Icon name="ri-star-fill" className="category-star-icon" />}
           </button>
           {counts.total > 0 && (
             <span className="category-count">

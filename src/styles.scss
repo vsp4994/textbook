@@ -320,11 +320,20 @@ body {
         background-color: transparent;
         border: none;
         cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
     }
 
     .category-title {
         font-weight: 600;
         user-select: none;
+    }
+
+    .category-star-icon {
+        font-size: 0.85rem;
+        color: $primary-color;
+        flex-shrink: 0;
     }
 
     .badge-depth {
@@ -627,6 +636,20 @@ body {
 
     // Primary variant — same element, combined class
     &.primary-icon-btn {
+        &:hover:not(:disabled) {
+            background-color: rgba($primary-color, 0.15);
+            color: $primary-color;
+        }
+    }
+
+    // Star variant — turns primary when the item is starred
+    &.star-icon-btn {
+        &.is-starred {
+            background-color: rgba($primary-color, 0.15);
+            color: $primary-color;
+            border-color: rgba($primary-color, 0.5);
+        }
+
         &:hover:not(:disabled) {
             background-color: rgba($primary-color, 0.15);
             color: $primary-color;
@@ -964,4 +987,123 @@ body {
 
 .icon-primary {
     color: $primary-color;
+}
+
+// Debug JSON viewer (shown in the SyncPanel for development users)
+.debug-json-panel {
+    width: 100%;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    background-color: rgba(0, 0, 0, 0.25);
+    padding: 10px;
+    overflow: auto;
+    max-height: 80vh;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: $text-color;
+
+    .debug-json-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        color: $primary-color;
+        margin-bottom: 8px;
+        border-bottom: 1px dashed $border-color;
+        padding-bottom: 6px;
+
+        .debug-json-user {
+            margin-left: auto;
+            font-weight: 400;
+            color: $text-muted;
+            font-size: 0.72rem;
+        }
+    }
+
+    .json-viewer {
+        min-width: max-content;
+    }
+
+    .json-node {
+        &.json-node-container {
+            .json-toggle {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                background: none;
+                border: none;
+                color: $text-color;
+                font: inherit;
+                cursor: pointer;
+                padding: 1px 2px;
+                border-radius: 3px;
+                text-align: left;
+
+                &:hover:not(:disabled) {
+                    background-color: rgba($primary-color, 0.12);
+                }
+
+                &.json-toggle-empty {
+                    cursor: default;
+
+                    &:hover {
+                        background: none;
+                    }
+                }
+
+                .json-caret {
+                    display: inline-block;
+                    color: $text-muted;
+                    width: 12px;
+                    flex-shrink: 0;
+                }
+
+                .json-bracket {
+                    color: #9cdcfe;
+                }
+
+                .json-ellipsis {
+                    color: $text-muted;
+                }
+
+                .json-count {
+                    color: $text-muted;
+                }
+            }
+        }
+
+        &.json-leaf {
+            padding: 1px 2px;
+            text-align: left;
+        }
+
+        .json-label {
+            color: #9cdcfe;
+        }
+
+        .json-children {
+            margin-left: 18px;
+            border-left: 1px dashed rgba($border-color, 0.6);
+            padding-left: 6px;
+        }
+    }
+
+    .json-string {
+        color: #ce9178;
+    }
+
+    .json-number {
+        color: #b5cea8;
+    }
+
+    .json-boolean {
+        color: #569cd6;
+    }
+
+    .json-null {
+        color: $text-muted;
+        font-style: italic;
+    }
 }

@@ -7,6 +7,7 @@ export interface TodoItemType {
   isList?: boolean;
   listItems?: TodoItemType[];
   collapsed?: boolean;
+  starred?: boolean;
 }
 
 export interface Category {
