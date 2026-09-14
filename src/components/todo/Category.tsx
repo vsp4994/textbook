@@ -120,7 +120,7 @@ export const Category: React.FC<CategoryProps> = ({
   const sortedItems = sortTodoItems([...category.items].reverse(), category.sortCheckedToBottom);
 
   return (
-    <div key={category.id} className={`category-card depth-${category.depth}`}>
+    <div key={category.id} className={`category-card depth-${category.depth}${openDropdownId === category.id ? ' dropdown-open' : ''}`}>
       <div className="category-header">
         <div className="category-meta">
           <button className="category-header-title-button" onClick={handleCategoryTitleClick} type='button'>

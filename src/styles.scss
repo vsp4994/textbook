@@ -43,7 +43,11 @@ body {
     color: $text-color;
     line-height: 1.5;
     font-size: 14px;
-    overflow-x: hidden; // Prevent horizontal page scroll
+    // Use `overflow-x: clip` instead of `hidden`: `hidden` makes this element a
+    // scroll container, which silently disables `position: sticky` on descendant
+    // category headers. `clip` still prevents horizontal page scroll but does NOT
+    // create a scroll container, so sticky headers work.
+    overflow-x: clip; // Prevent horizontal page scroll
     max-width: 100vw;
 }
 
@@ -54,7 +58,9 @@ body {
     flex-direction: column;
     gap: 16px;
     padding: 16px;
-    overflow-x: hidden; // Prevent horizontal overflow
+    // `clip` (not `hidden`) so it does not become a scroll container and break
+    // sticky category headers while still preventing horizontal overflow.
+    overflow-x: clip; // Prevent horizontal overflow
 
     @media (max-width: 768px) {
         padding: 12px;
@@ -290,6 +296,28 @@ body {
     }
 }
 
+// On mobile, pin nested category headers BELOW the sticky parent header so the
+// full hierarchy stays visible (main category on top, then its subcategory, etc.)
+// while scrolling through a long list. 36px is the fixed sticky header height.
+@media (max-width: 600px) {
+    .category-card.depth-2 > .category-header {
+        top: 37px;
+        z-index: 19;
+    }
+
+    .category-card.depth-3 > .category-header {
+        top: 72px;
+    }
+
+    // When a category's settings dropdown is open, raise THAT card's header
+    // above every other sticky header. Otherwise a lower category's sticky
+    // header (later in the DOM, same/higher z-index) could paint over and hide
+    // the open dropdown menu as you scroll.
+    .category-card.dropdown-open > .category-header {
+        z-index: 9999 !important;
+    }
+}
+
 .category-header {
     padding: 8px 4px 8px 8px;
     background-color: rgba($border-color, 0.2);
@@ -297,8 +325,36 @@ body {
     justify-content: space-between;
     align-items: center;
 
+    // Sticky category header on mobile so the currently-viewed category /
+    // subcategory stays visible at the top of the screen while scrolling.
+    // Nested (deeper) headers stack BELOW the pinned parent header (see the
+    // mobile offset rules after .category-card) to form a hierarchy "breadcrumb".
+    // An opaque background + shadow gives separation from scrolled content.
     @media (max-width: 600px) {
-        // padding: 10px 12px;
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background-color: $card-bg;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        // Keep the header height consistent (~36px) so the stacked sticky
+        // offsets (36px per depth level) line up without overlap.
+        // NOTE: nowrap is applied only to the title row (.category-meta) below,
+        // NOT to this header, because `white-space` is inherited and would
+        // otherwise also force the .dropdown-menu (a child) onto one line.
+
+        .category-meta {
+            min-width: 0;
+            white-space: nowrap;
+
+            .category-header-title-button {
+                min-width: 0;
+
+                .category-title {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+            }
+        }
     }
 }
 
@@ -418,6 +474,7 @@ body {
     flex-grow: 1;
     border: 1px solid $border-color;
     border-radius: 4px;
+    background-color: rgba($border-color, 0.5);
     padding: 6px;
     font-size: 0.85rem;
     min-height: 50px;
@@ -569,8 +626,16 @@ body {
     border-radius: $border-radius;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
     min-width: 260px;
+    // Never inherit nowrap/other white-space from ancestors (e.g. the sticky
+    // category header), so menu labels always wrap naturally.
+    white-space: normal;
     z-index: 9999999;
     padding: 6px 0;
+
+    @media (max-width: 600px) {
+        // Keep the menu within the viewport on narrow screens.
+        max-width: calc(100vw - 24px);
+    }
 
     button {
         width: 100%;
