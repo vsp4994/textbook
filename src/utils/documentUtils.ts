@@ -25,9 +25,6 @@ const isTodoItem = (value: unknown): value is TodoItemType => {
   if (!isRecord(value)) return false;
   if (typeof value.id !== 'string' || typeof value.title !== 'string') return false;
   if (typeof value.completed !== 'boolean') return false;
-  if (value.listItems !== undefined) {
-    if (!Array.isArray(value.listItems) || !value.listItems.every(isTodoItem)) return false;
-  }
   return true;
 };
 

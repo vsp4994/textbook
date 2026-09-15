@@ -37,6 +37,17 @@ $transition-speed: 0.2s;
     padding: 0;
 }
 
+// Global smooth scrolling — the single place handling every scroll container:
+// the document scroll (html/body), the tab navigation bar, the reorder-options
+// dropdown, the debug JSON panel, etc. `scroll-behavior` is NOT inherited, so
+// setting it only on `html` would only smooth the page; the universal selector
+// covers all scroll containers at once. Non-scroll elements ignore it, and the
+// `prefers-reduced-motion: reduce` block at the bottom overrides this to
+// `auto` for users who have disabled motion.
+* {
+    scroll-behavior: smooth;
+}
+
 body {
     // font-family: 'Courier New', Courier, monospace;
     background-color: $bg-color;
@@ -287,12 +298,20 @@ body {
         border-left: 3px solid #bd6b00;
     }
 
+    // Nested categories get a full colored outline on every side so they are
+    // easy to distinguish from top-level (depth-1) cards.
     &.depth-2 {
         border-left: 3px solid #9d52a7;
+        border-top: 0.5px solid #9d52a7;
+        border-right: 0.5px solid #9d52a7;
+        border-bottom: 0.5px solid #9d52a7;
     }
 
     &.depth-3 {
         border-left: 3px solid #16a34a;
+        border-top: 0.5px solid #16a34a;
+        border-bottom: 0.5px solid #16a34a;
+        border-right: 0.5px solid #16a34a;
     }
 }
 
@@ -306,7 +325,8 @@ body {
     }
 
     .category-card.depth-3 > .category-header {
-        top: 72px;
+        top: 74px;
+        z-index: 18;
     }
 
     // When a category's settings dropdown is open, raise THAT card's header
@@ -321,6 +341,9 @@ body {
 .category-header {
     padding: 8px 4px 8px 8px;
     background-color: rgba($border-color, 0.2);
+    // Round only the top corners to match the `.category-card` radius, so the
+    // header does not show sharp square corners poking past the card edge.
+    border-radius: $border-radius;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -693,17 +716,21 @@ body {
 
     // Danger variant (e.g. delete) — same element, combined class
     &.delete-icon-btn {
-        &:hover:not(:disabled) {
-            background-color: rgba($danger-color, 0.15);
-            color: $danger-color;
+        @media (hover: hover) and (pointer: fine) {
+            &:hover:not(:disabled) {
+                background-color: rgba($danger-color, 0.15);
+                color: $danger-color;
+            }
         }
     }
 
     // Primary variant — same element, combined class
     &.primary-icon-btn {
-        &:hover:not(:disabled) {
-            background-color: rgba($primary-color, 0.15);
-            color: $primary-color;
+        @media (hover: hover) and (pointer: fine) {
+            &:hover:not(:disabled) {
+                background-color: rgba($primary-color, 0.15);
+                color: $primary-color;
+            }
         }
     }
 
@@ -715,9 +742,14 @@ body {
             border-color: rgba($primary-color, 0.5);
         }
 
-        &:hover:not(:disabled) {
-            background-color: rgba($primary-color, 0.15);
-            color: $primary-color;
+        // Only apply hover on real hover-capable pointers (mouse), not touch:
+        // otherwise tapping the star leaves a "sticky" :hover that only clears
+        // after tapping somewhere else on the screen.
+        @media (hover: hover) and (pointer: fine) {
+            &:hover:not(:disabled) {
+                background-color: rgba($primary-color, 0.15);
+                color: $primary-color;
+            }
         }
     }
 }

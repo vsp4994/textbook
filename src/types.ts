@@ -2,12 +2,7 @@ export interface TodoItemType {
   id: string;
   title: string;
   completed: boolean;
-  isText?: boolean;
-  text?: string;
-  isList?: boolean;
-  listItems?: TodoItemType[];
-  collapsed?: boolean;
-  starred?: boolean;
+  starred: boolean;
 }
 
 export interface Category {

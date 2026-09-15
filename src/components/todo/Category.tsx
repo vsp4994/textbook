@@ -15,9 +15,7 @@ interface CategoryProps {
     item: TodoItemType,
     hideChecked: boolean,
     showCheckboxes: boolean,
-    sortCheckedToBottom: boolean,
-    categoryId?: string,
-    parentListId?: string
+    categoryId?: string
   ) => React.ReactNode;
   renderCategory: (category: CategoryType) => React.ReactNode;
 }
@@ -49,7 +47,7 @@ export const Category: React.FC<CategoryProps> = ({
         id: newTodoId,
         title: '',
         completed: false,
-        depth: category.depth,
+        starred: false,
       }, ...c.items],
     }));
     setFocusInputId(newTodoId);
@@ -110,7 +108,7 @@ export const Category: React.FC<CategoryProps> = ({
   };
 
   const handleTodoItemRender = (item: TodoItemType) => {
-    return renderTodoItem(item, category.hideCheckedItems, category.showCheckboxes, category.sortCheckedToBottom, category.id);
+    return renderTodoItem(item, category.hideCheckedItems, category.showCheckboxes, category.id);
   };
 
   const handleSubcategoryRender = (sub: CategoryType) => {

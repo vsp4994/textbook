@@ -51,7 +51,6 @@ export const updateTodoItems = (
   const updateItems = (items: TodoItemType[]): TodoItemType[] => {
     return items.map((item) => {
       if (item.id === todoId) return { ...item, ...mutation(item) };
-      if (item.listItems) return { ...item, listItems: updateItems(item.listItems) };
       return item;
     });
   };
@@ -64,10 +63,7 @@ export const updateTodoItems = (
 
 export const deleteTodoItem = (categories: Category[], todoId: string): Category[] => {
   const deleteItems = (items: TodoItemType[]): TodoItemType[] =>
-    items.filter((i) => i.id !== todoId).map((i) => ({
-      ...i,
-      listItems: i.listItems ? deleteItems(i.listItems) : undefined,
-    }));
+    items.filter((i) => i.id !== todoId);
   return categories.map((cat) => ({
     ...cat,
     items: deleteItems(cat.items),
@@ -99,9 +95,7 @@ export const hasStarredTodoItems = (items: TodoItemType[]): boolean => {
   return items.some((item) => {
     // Only un-checked starred items count (so a fully-checked starred item
     // no longer marks its category as starred).
-    if (item.starred && !item.completed) return true;
-    if (item.listItems && hasStarredTodoItems(item.listItems)) return true;
-    return false;
+    return item.starred && !item.completed;
   });
 };
 
@@ -110,37 +104,13 @@ export const hasAnyStarredItems = (category: Category): boolean => {
   return category.subcategories.some(hasAnyStarredItems);
 };
 
-export const countCompletedItems = (item: TodoItemType): { completed: number; total: number } => {
-  if (!item.listItems || item.listItems.length === 0) {
-    return { completed: 0, total: 0 };
-  }
-  let completed = 0;
-  let total = 0;
-  for (const child of item.listItems) {
-    if (child.completed) completed++;
-    total++;
-    if (child.listItems && child.listItems.length > 0) {
-      const nested = countCompletedItems(child);
-      completed += nested.completed;
-      total += nested.total;
-    }
-  }
-  return { completed, total };
-};
-
 export const countCategoryItems = (category: Category): { completed: number; total: number } => {
   let completed = 0;
   let total = 0;
   for (const item of category.items) {
     if (!category.showCheckboxes) continue;
-    if (item.isText) continue;
     if (item.completed) completed++;
     total++;
-    if (item.isList) {
-      const listCounts = countCompletedItems(item);
-      completed += listCounts.completed;
-      total += listCounts.total;
-    }
   }
   category.subcategories.forEach((sub) => {
     const subCounts = countCategoryItems(sub);
@@ -154,34 +124,17 @@ export const uncheckAllItems = (items: TodoItemType[]): TodoItemType[] => {
   return items.map((item) => ({
     ...item,
     completed: false,
-    listItems: item.listItems ? uncheckAllItems(item.listItems) : undefined,
   }));
 };
 
 export const hasAnyCompletedItems = (items: TodoItemType[]): boolean => {
-  return items.some((item) => {
-    if (item.completed) return true;
-    if (item.listItems && hasAnyCompletedItems(item.listItems)) return true;
-    return false;
-  });
-};
-
-export const verifyAllChildrenCompleted = (item: TodoItemType): boolean => {
-  if (!item.listItems || item.listItems.length === 0) {
-    return true;
-  }
-  return item.listItems.every((child) => {
-    if (child.isText) return true;
-    if (!child.completed) return false;
-    return verifyAllChildrenCompleted(child);
-  });
+  return items.some((item) => item.completed);
 };
 
 export const migrateTodoItems = (items: TodoItemType[]): TodoItemType[] => {
   return items.map((item) => ({
     ...item,
     starred: item.starred ?? false,
-    listItems: item.listItems ? migrateTodoItems(item.listItems) : item.listItems,
   }));
 };
 

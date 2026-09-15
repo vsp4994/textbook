@@ -268,30 +268,15 @@ const AppContent = ({ document }: AppContentProps) => {
     });
   };
 
-  const handleAddTodoAfter = (
-    categoryId: string,
-    afterItemId: string,
-    isNestedList = false,
-    parentListId?: string
-  ) => {
+  const handleAddTodoAfter = (categoryId: string, afterItemId: string) => {
     const newTodo: TodoItemType = {
       id: generateUUID(),
       title: '',
       completed: false,
+      starred: false,
     };
 
     setFocusInputId(newTodo.id);
-
-    if (isNestedList && parentListId) {
-      handleUpdateTodo(parentListId, (item) => {
-        const existingItems = item.listItems ?? [];
-        const itemIndex = existingItems.findIndex((existingItem) => existingItem.id === afterItemId);
-        const newItems = [...existingItems];
-        newItems.splice(itemIndex + 1, 0, newTodo);
-        return { listItems: newItems };
-      });
-      return;
-    }
 
     handleUpdateCategory(categoryId, (category) => {
       const displayOrderedItems = [...category.items].reverse();
@@ -306,18 +291,14 @@ const AppContent = ({ document }: AppContentProps) => {
     item: TodoItemType,
     hideChecked: boolean,
     showCheckboxes: boolean,
-    sortCheckedToBottom = false,
-    categoryId?: string,
-    parentListId?: string
+    categoryId?: string
   ): ReactNode => (
     <TodoItem
       key={item.id}
       item={item}
       hideChecked={hideChecked}
       showCheckboxes={showCheckboxes}
-      sortCheckedToBottom={sortCheckedToBottom}
       categoryId={categoryId}
-      parentListId={parentListId}
       focusInputId={focusInputId}
       setFocusInputId={setFocusInputId}
       onUpdateTodo={handleUpdateTodo}
@@ -325,7 +306,6 @@ const AppContent = ({ document }: AppContentProps) => {
       onAddTodoAfter={handleAddTodoAfter}
       onSetModalConfig={setModalConfig}
       setOpenDropdownId={setOpenDropdownId}
-      renderTodoItem={renderTodoItem}
     />
   );
 

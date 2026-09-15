@@ -105,21 +105,7 @@ const mergeTodoItem: MergeEntity<TodoItemType> = (
   id: local.id,
   title: chooseValue(base?.title, local.title, remote.title, hasBase, preferLocal),
   completed: chooseValue(base?.completed, local.completed, remote.completed, hasBase, preferLocal),
-  isText: chooseValue(base?.isText, local.isText, remote.isText, hasBase, preferLocal),
-  text: chooseValue(base?.text, local.text, remote.text, hasBase, preferLocal),
-  isList: chooseValue(base?.isList, local.isList, remote.isList, hasBase, preferLocal),
-  collapsed: chooseValue(base?.collapsed, local.collapsed, remote.collapsed, hasBase, preferLocal),
-  listItems:
-    local.listItems || remote.listItems || base?.listItems
-      ? mergeById(
-          base?.listItems,
-          local.listItems ?? [],
-          remote.listItems ?? [],
-          hasBase,
-          preferLocal,
-          mergeTodoItem
-        )
-      : undefined,
+  starred: chooseValue(base?.starred, local.starred, remote.starred, hasBase, preferLocal),
 });
 
 const mergeCategory: MergeEntity<Category> = (
