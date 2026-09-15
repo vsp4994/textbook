@@ -1,6 +1,6 @@
 import type { GoogleApiService } from './api/googleApiService';
 import type { AppDocument, DriveFileMetadata, DriveUser } from './types';
-import { isAppDocument, migrateDocument } from './utils/documentUtils';
+import { isAppDocument } from './utils/documentUtils';
 
 const DRIVE_FILE_NAME = 'textbook-data.json';
 const DRIVE_API_BASE_URL = 'https://www.googleapis.com/drive/v3';
@@ -100,7 +100,13 @@ export const createGoogleDriveSyncService = (apiService: GoogleApiService): Goog
       throw new Error('The Google Drive data file is invalid or corrupted. Local data was not replaced.');
     }
 
-    return migrateDocument(value);
+    // Deliberately return the RAW stored document (do NOT migrate here). The sync
+    // layer compares this against the canonical (migrated/merged) form to decide
+    // whether to write back. If we pre-migrated here, the comparison would always
+    // see "same content" and never rewrite Drive — leaving stale fields like
+    // `text`/`depth` embedded in the file forever. Returning raw lets the sync
+    // detect the difference and upload a clean copy that strips them.
+    return value;
   };
 
   const uploadFile = async (

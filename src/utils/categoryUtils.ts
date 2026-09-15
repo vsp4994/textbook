@@ -133,7 +133,9 @@ export const hasAnyCompletedItems = (items: TodoItemType[]): boolean => {
 
 export const migrateTodoItems = (items: TodoItemType[]): TodoItemType[] => {
   return items.map((item) => ({
-    ...item,
+    id: item.id,
+    title: item.title,
+    completed: item.completed,
     starred: item.starred ?? false,
   }));
 };

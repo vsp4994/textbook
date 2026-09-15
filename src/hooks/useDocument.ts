@@ -89,9 +89,11 @@ export const useDocument = (): UseDocumentReturn => {
         setOwnerUserId(storedUserId);
         setDocumentState(initialDocument);
 
-        if (!storedDocument) {
-          await persistDocument(initialDocument, storedUserId);
-        }
+        // Always persist the migrated (canonical) document on load so legacy fields
+        // (`text`, `depth`, `listItems`, `isList`, `collapsed`...) are scrubbed from
+        // local storage too — otherwise stale data lingers in IndexedDB until the
+        // next edit or sync rewrites it.
+        await persistDocument(initialDocument, storedUserId);
       } finally {
         setIsLoading(false);
       }
