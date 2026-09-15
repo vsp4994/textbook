@@ -69,7 +69,6 @@ export const SyncPanel = ({ document, isDbAvailable }: SyncPanelProps) => {
   return (
     <div className="sync-panel">
       <div className="sync-status" aria-live="polite">
-        <span className="indicator-label">Cloud Sync:</span>
         <span className={`status-badge ${STATUS_CLASS_NAMES[status]}`}>{STATUS_LABELS[status]}</span>
 
         {currentUser?.emailAddress && <span className="sync-user">{currentUser.emailAddress}</span>}

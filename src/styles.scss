@@ -79,7 +79,7 @@ body {
     }
 
     @media (max-width: 600px) {
-        padding: 8px;
+        padding: 0px 8px 8px 8px;
         gap: 10px;
     }
 }
@@ -182,6 +182,16 @@ body {
 
 // Tabbed Navigation Bar
 .tab-navigation {
+    // Pin the tab bar to the top of the viewport on scroll so the current list
+    // tabs stay accessible while reading/editing a long list. Needs an opaque
+    // background so content scrolling underneath does not show through.
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background-color: $bg-color;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    padding-top: 4px;
+
     border-bottom: 2px solid $border-color;
     width: 100%;
     overflow-x: auto;
@@ -319,13 +329,18 @@ body {
 // full hierarchy stays visible (main category on top, then its subcategory, etc.)
 // while scrolling through a long list. 36px is the fixed sticky header height.
 @media (max-width: 600px) {
+    .category-card.depth-1 > .category-header {
+        top: 38px;
+        z-index: 20;
+    }
+   
     .category-card.depth-2 > .category-header {
-        top: 37px;
+        top: 75px;
         z-index: 19;
     }
 
     .category-card.depth-3 > .category-header {
-        top: 74px;
+        top: 112px;
         z-index: 18;
     }
 
@@ -459,7 +474,17 @@ body {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 0px 4px 0px;
+
+    &__actions {
+        display: flex;
+        gap: 4px;
+        &.is-vertical {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+    }
+
 }
 
 .todo-checkbox {
@@ -500,7 +525,7 @@ body {
     background-color: rgba($border-color, 0.5);
     padding: 6px;
     font-size: 0.85rem;
-    min-height: 50px;
+    min-height: 100px;
     resize: vertical;
 
     @media (max-width: 600px) {

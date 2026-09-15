@@ -159,30 +159,30 @@ export const TodoItem: React.FC<TodoItemProps> = ({
           />
         )}
 
-        <button
-          className={`icon-btn star-icon-btn ${item.starred && !item.completed ? 'is-starred' : ''}`}
-          onClick={handleStarClick}
-          title={item.starred ? (item.completed ? 'Unstar (checked)' : 'Unstar') : 'Star'}
-        >
-          <Icon name={item.starred ? 'ri-star-fill' : 'ri-star-line'} />
-        </button>
-
-        <button
-          className="icon-btn primary-icon-btn"
-          onClick={handleCopyClick}
-          disabled={!getCopyText()}
-          title={copied ? 'Copied!' : 'Copy'}
-        >
-          <Icon name={copied ? 'ri-check-line' : 'ri-file-copy-line'} />
-        </button>
-
-        <button
-          className="icon-btn delete-icon-btn"
-          onClick={handleDeleteClick}
-          title="Delete"
-        >
-          <Icon name="ri-delete-bin-line" />
-        </button>
+        <div className={`todo-row__actions ${!showCheckboxes && "is-vertical"}`}>
+          <button
+            className={`icon-btn star-icon-btn ${item.starred && !item.completed ? 'is-starred' : ''}`}
+            onClick={handleStarClick}
+            title={item.starred ? (item.completed ? 'Unstar (checked)' : 'Unstar') : 'Star'}
+          >
+            <Icon name={item.starred ? 'ri-star-fill' : 'ri-star-line'} />
+          </button>
+          <button
+            className="icon-btn primary-icon-btn"
+            onClick={handleCopyClick}
+            disabled={!getCopyText()}
+            title={copied ? 'Copied!' : 'Copy'}
+          >
+            <Icon name={copied ? 'ri-check-line' : 'ri-file-copy-line'} />
+          </button>
+          <button
+            className="icon-btn delete-icon-btn"
+            onClick={handleDeleteClick}
+            title="Delete"
+          >
+            <Icon name="ri-delete-bin-line" />
+          </button>
+        </div>
       </div>
     </div>
   );
