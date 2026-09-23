@@ -522,9 +522,42 @@ body {
 }
 
 .todo-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
     width: 18px;
     height: 18px;
+    margin: 0;
+    border: 2px solid $border-color;
+    border-radius: 50%;
+    background-color: transparent;
     cursor: pointer;
+    display: grid;
+    place-content: center;
+    transition: border-color $transition-speed, background-color $transition-speed;
+
+    &::before {
+        content: '';
+        width: 9px;
+        height: 5px;
+        border-left: 2px solid white;
+        border-bottom: 2px solid white;
+        transform: rotate(-45deg) scale(0);
+        transition: transform $transition-speed ease-in-out;
+    }
+
+    &:checked {
+        border-color: $success-color;
+        background-color: $success-color;
+
+        &::before {
+            transform: rotate(-45deg) scale(1);
+        }
+    }
+
+    &:focus-visible {
+        outline: 3px solid $focus-color;
+        outline-offset: 2px;
+    }
 }
 
 .todo-title-input {
