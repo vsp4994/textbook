@@ -14,7 +14,7 @@ $warning-color: #fbbf24;
 $focus-color: #60a5fa;
 
 // Spacing & Borders
-$border-radius: 8px;
+$border-radius: 2px;
 $transition-speed: 0.2s;
 
 // Mixins
@@ -35,6 +35,26 @@ $transition-speed: 0.2s;
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+}
+
+// Global tap / click highlight
+// The browser paints a default blue/gray background flash on any element when
+// you click or tap it. Replace it with a subtle, theme-neutral pressed tint so
+// every button shows the same clean, on-brand background instead.
+* {
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.12);
+}
+
+// Consistent pressed ("active") background on mouse clicks for the controls
+// that are otherwise transparent, matching the dark theme. Colored variants
+// (.btn-primary/.btn-danger/.btn-warning) and the already-selected tab keep
+// their own backgrounds so nothing visually regresses while pressed.
+.btn:active:not(.btn-primary):not(.btn-danger):not(.btn-warning),
+.icon-btn:active,
+.tab-item:active:not(.active),
+.tab-options-button:active,
+.dropdown-menu button:active {
+    background-color: rgba(255, 255, 255, 0.12);
 }
 
 // Global smooth scrolling — the single place handling every scroll container:
@@ -68,7 +88,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 16px;
-    padding: 16px;
+    // padding: 16px;
     // `clip` (not `hidden`) so it does not become a scroll container and break
     // sticky category headers while still preventing horizontal overflow.
     overflow-x: clip; // Prevent horizontal overflow
@@ -79,8 +99,12 @@ body {
     }
 
     @media (max-width: 600px) {
-        padding: 0px 8px 8px 8px;
+        padding: 0px;
         gap: 10px;
+        // Fill at least the full viewport height on mobile so the sticky footer
+        // bar always sits at the very bottom of the screen, even on short pages.
+        min-height: 100vh;
+        min-height: 100dvh;
     }
 }
 
@@ -95,7 +119,15 @@ body {
     gap: 12px;
 
     @media (max-width: 600px) {
-        padding: 12px;
+        padding: 4px;
+
+        // Pin the footer to the bottom of the viewport on mobile only. `sticky`
+        // keeps it in normal document flow so nothing overlaps or changes; the
+        // top shadow gives it a floating look above the scrolling content.
+        position: sticky;
+        bottom: 0;
+        z-index: 20;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.35);
     }
 }
 
@@ -109,7 +141,8 @@ body {
 
 .sync-status {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    // flex-direction: column;
     gap: 4px;
 
     .indicator-label {
@@ -188,26 +221,42 @@ body {
     position: sticky;
     top: 0;
     z-index: 30;
-    background-color: $bg-color;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    padding-top: 4px;
+    background-color: $card-bg;
+    // box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    // padding-top: 4px;
 
-    border-bottom: 2px solid $border-color;
+    // border-bottom: 2px solid $border-color;
     width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none; // Firefox
-    -webkit-overflow-scrolling: touch; // iOS smooth scrolling
 
-    &::-webkit-scrollbar {
-        display: none; // Chrome/Safari
-    }
+    // Lay the scrollable tab pills next to the pinned "options" button so that
+    // button always stays in the right corner. `clip` (not `hidden`) avoids
+    // turning this element into a scroll container (which would swallow sticky
+    // descendants) while still preventing any horizontal page overflow.
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    overflow-x: clip;
 
     .tab-list {
         display: inline-flex;
         flex-wrap: nowrap;
         gap: 8px;
         scroll-behavior: smooth;
+
+        // Fill the remaining width (growing into free space, which pushes the
+        // options button into the far right corner) while scrolling overflow
+        // tabs horizontally. `min-width: 0` lets this flex item shrink below
+        // its content width so `overflow-x` can engage.
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none; // Firefox
+        -webkit-overflow-scrolling: touch; // iOS smooth scrolling
+
+        &::-webkit-scrollbar {
+            display: none; // Chrome/Safari
+        }
     }
 }
 
@@ -219,7 +268,7 @@ body {
     background-color: transparent;
     border: 1px solid transparent;
     border-bottom: none;
-    border-radius: $border-radius $border-radius 0 0;
+    // border-radius: 0px 0px 8px 8px;
     font-weight: 500;
     cursor: pointer;
     white-space: nowrap;
@@ -235,8 +284,8 @@ body {
     }
 
     &.active {
-        background-color: $card-bg;
-        border-color: $border-color;
+        background-color: $bg-color;
+        // border-color: $border-color;
         color: $primary-color;
         font-weight: 600;
         position: relative;
@@ -247,36 +296,25 @@ body {
         color: $primary-color;
         font-weight: 600;
     }
-
-    .tab-delete {
-        background: none;
-        border: none;
-        color: $text-muted;
-        font-size: 1rem;
-        cursor: pointer;
-        border-radius: 50%;
-        width: 18px;
-        height: 18px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-
-        &:hover {
-            background-color: rgba($danger-color, 0.1);
-            color: $danger-color;
-        }
-    }
 }
 
 // Main App Area and Layouts
 .app-body {
     min-height: 400px;
+
+    @media (max-width: 600px) {
+        // Absorb leftover viewport height so the mobile footer is pushed down
+        // to the bottom of the screen.
+        flex: 1 1 auto;
+        min-height: 0;
+    }
 }
 
 .list-wrapper {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    padding: 4px;
 }
 
 .list-header-row {
@@ -330,17 +368,17 @@ body {
 // while scrolling through a long list. 36px is the fixed sticky header height.
 @media (max-width: 600px) {
     .category-card.depth-1 > .category-header {
-        top: 38px;
+        top: 32px;
         z-index: 20;
     }
    
     .category-card.depth-2 > .category-header {
-        top: 75px;
+        top: 66px;
         z-index: 19;
     }
 
     .category-card.depth-3 > .category-header {
-        top: 112px;
+        top: 100px;
         z-index: 18;
     }
 
@@ -354,8 +392,8 @@ body {
 }
 
 .category-header {
-    padding: 8px 4px 8px 8px;
-    background-color: rgba($border-color, 0.2);
+    // padding: 4px 0px;
+    // background-color: rgba($border-color, 0.2);
     // Round only the top corners to match the `.category-card` radius, so the
     // header does not show sharp square corners poking past the card edge.
     border-radius: $border-radius;
@@ -381,36 +419,42 @@ body {
         // otherwise also force the .dropdown-menu (a child) onto one line.
 
         .category-meta {
-            min-width: 0;
-            white-space: nowrap;
-
             .category-header-title-button {
-                min-width: 0;
+                // min-width: 0;
 
                 .category-title {
                     overflow: hidden;
                     text-overflow: ellipsis;
                 }
             }
+            // min-width: 0;
+            white-space: nowrap;
+
         }
     }
 }
 
 .category-meta {
-    display: flex;
+    flex-grow: 1;
     align-items: center;
     gap: 10px;
-    flex-grow: 1;
     user-select: none;
-    height: 20px;
+    height: 35px;
 
     .fold-icon {
-        font-size: 0.8rem;
+        font-size: 1rem;
         margin-right: 4px;
         color: $text-muted;
     }
+    .category-mode-icon {
+        font-size: 1rem;
+        margin-right: 4px;
+        color: $primary-color;
+    }
 
     .category-header-title-button {
+        width: 100%;
+        height: 100%;
         background-color: transparent;
         border: none;
         cursor: pointer;
@@ -428,16 +472,6 @@ body {
         font-size: 0.85rem;
         color: $primary-color;
         flex-shrink: 0;
-    }
-
-    .badge-depth {
-        font-size: 0.7rem;
-        user-select: none;
-        padding: 2px 6px;
-        background-color: rgba($border-color, 0.3);
-        color: $text-muted;
-        border-radius: 4px;
-        font-weight: 500;
     }
 
     .category-count {
@@ -640,24 +674,8 @@ body {
 // Dropdowns (accessible via tab triggers)
 .dropdown {
     position: relative;
-    display: inline-block;
-
-    .dropdown-trigger {
-        display: flex;
-        margin-left: 8px;
-        background: none;
-        border: none;
-        color: $text-muted;
-        user-select: none;
-        padding: 4px 8px;
-        cursor: pointer;
-        border-radius: 4px;
-        transition: background $transition-speed;
-
-        &:hover {
-            background-color: rgba($border-color, 0.2);
-        }
-    }
+    display: inline-flex;
+    gap: 4px;
 
     &.open .dropdown-menu {
         display: block;
@@ -723,7 +741,7 @@ body {
 // Icon button base + variants (danger/primary)
 .icon-btn {
     background: none;
-    border: 0.5px solid $border-color;
+    border: none;
     color: $text-muted;
     user-select: none;
     padding: 8px;
@@ -848,6 +866,9 @@ body {
 .tab-options {
     position: relative;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    box-shadow: -4px 0 8px rgba(0, 0, 0, 0.5);
 
     .tab-options-button {
         display: inline-flex;
@@ -957,7 +978,7 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 2px 8px;
+    padding: 4px 8px;
     border-radius: 6px;
     font-size: 0.85rem;
     font-weight: 500;
@@ -1018,13 +1039,24 @@ body {
     }
 
     &.btn-add-task {
-        user-select: none;
         margin-left: auto;
         justify-content: center;
         background-color: transparent;
         color: $primary-color;
 
         &:hover {
+            background-color: rgba($border-color, 0.2);
+            color: $text-color;
+        }
+    }
+
+    &.btn-dropdown-toggle {
+        margin-left: auto;
+        justify-content: center;
+        background-color: transparent;
+        color: $text-muted;
+
+         &:hover {
             background-color: rgba($border-color, 0.2);
             color: $text-color;
         }
@@ -1119,7 +1151,7 @@ body {
     background-color: rgba(0, 0, 0, 0.25);
     padding: 10px;
     overflow: auto;
-    max-height: 80vh;
+    max-height: 50vh;
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
     font-size: 0.78rem;
     line-height: 1.45;

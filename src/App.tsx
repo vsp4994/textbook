@@ -378,67 +378,67 @@ const AppContent = ({ document }: AppContentProps) => {
           ))}
 
           <button className="tab-item add-tab" onClick={handleAddList} type="button">
-            <Icon name="ri-add-line" /> New List
+            <Icon name="ri-add-line" /> List
+          </button>
+        </div>
+
+        <div className="tab-options">
+          <button
+            ref={tabOptionsRef}
+            className="tab-options-button"
+            onClick={toggleTabMenu}
+            type="button"
+            title="View and reorder lists"
+          >
+            <Icon name="ri-list-settings-line" />
           </button>
 
-          <div className="tab-options">
-            <button
-              ref={tabOptionsRef}
-              className="tab-options-button"
-              onClick={toggleTabMenu}
-              type="button"
-              title="View and reorder lists"
+          {tabMenuOpen && doc && (
+            <div
+              className="tab-options-menu"
+              style={{ top: tabMenuPos.top, left: tabMenuPos.left }}
             >
-              <Icon name="ri-list-settings-line" />
-            </button>
-
-            {tabMenuOpen && doc && (
-              <div
-                className="tab-options-menu"
-                style={{ top: tabMenuPos.top, left: tabMenuPos.left }}
-              >
-                <div className="tab-options-menu-header">Drag to reorder lists</div>
-                {doc.lists.length === 0 ? (
-                  <div className="tab-options-empty">No lists yet.</div>
-                ) : (
-                  <ReorderList
-                    items={doc.lists}
-                    getItemId={(list) => list.id}
-                    renderItem={(list) => (
-                      <>
-                        <Icon name="ri-draggable" className="tab-options-drag reorder-handle" />
-                        <span className="tab-options-title">{list.title}</span>
-                        {list.id === activeListId && (
-                          <Icon name="ri-check-line" className="tab-options-active" />
-                        )}
-                        <button
-                          className="icon-btn primary-icon-btn"
-                          onClick={() => handleEditList(list.id)}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          type="button"
-                          title="Rename list"
-                        >
-                          <Icon name="ri-pencil-line" />
-                        </button>
-                        <button
-                          className="icon-btn delete-icon-btn"
-                          onClick={() => handleDeleteList(list.id)}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          type="button"
-                          title="Delete list"
-                        >
-                          <Icon name="ri-delete-bin-line" />
-                        </button>
-                      </>
-                    )}
-                    onReorder={handleReorderLists}
-                    className="tab-options-list"
-                    itemClassName="tab-options-item"
-                  />
-                )}
-              </div>
-            )}
-          </div>
+              <div className="tab-options-menu-header">Drag to reorder lists</div>
+              {doc.lists.length === 0 ? (
+                <div className="tab-options-empty">No lists yet.</div>
+              ) : (
+                <ReorderList
+                  items={doc.lists}
+                  getItemId={(list) => list.id}
+                  renderItem={(list) => (
+                    <>
+                      <Icon name="ri-draggable" className="tab-options-drag reorder-handle" />
+                      <span className="tab-options-title">{list.title}</span>
+                      {list.id === activeListId && (
+                        <Icon name="ri-check-line" className="tab-options-active" />
+                      )}
+                      <button
+                        className="icon-btn primary-icon-btn"
+                        onClick={() => handleEditList(list.id)}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        type="button"
+                        title="Rename list"
+                      >
+                        <Icon name="ri-pencil-line" />
+                      </button>
+                      <button
+                        className="icon-btn delete-icon-btn"
+                        onClick={() => handleDeleteList(list.id)}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        type="button"
+                        title="Delete list"
+                      >
+                        <Icon name="ri-delete-bin-line" />
+                      </button>
+                    </>
+                  )}
+                  onReorder={handleReorderLists}
+                  className="tab-options-list"
+                  itemClassName="tab-options-item"
+                />
+              )}
+            </div>
+          )}
         </div>
       </nav>
 
@@ -447,12 +447,12 @@ const AppContent = ({ document }: AppContentProps) => {
           <div className="list-wrapper">
             <div className="list-header-row">
               <button className="btn btn-outline" onClick={handleAddRootCategory} type="button">
-                <Icon name="ri-add-line" /> New Category
+                <Icon name="ri-add-line" /> Category
               </button>
             </div>
 
             {activeList.categories.length === 0 ? (
-              <div className="empty-state">Click "New Category" to get started.</div>
+              <div className="empty-state">Click "Category" to get started.</div>
             ) : (
               <div className="categories-grid">
                 {activeList.categories.map((category) => renderCategory(category))}

@@ -14,7 +14,7 @@ const STATUS_LABELS = {
   syncing: 'Syncing',
   synced: 'Synced',
   offline: 'Offline',
-  'reauth-required': 'Reconnect required',
+  'reauth-required': 'Reconnect',
   error: 'Sync failed',
 } as const;
 
@@ -46,8 +46,8 @@ export const SyncPanel = ({ document, isDbAvailable }: SyncPanelProps) => {
   const canRetrySync =
     isConnected && (status === 'offline' || status === 'error');
 
-  const canShowAutoSync =
-    isConnected && (status === 'synced' || status === 'syncing');
+  // const canShowAutoSync =
+  //   isConnected && (status === 'synced' || status === 'syncing');
 
   const handleConnect = () => {
     void connect();
@@ -71,13 +71,13 @@ export const SyncPanel = ({ document, isDbAvailable }: SyncPanelProps) => {
       <div className="sync-status" aria-live="polite">
         <span className={`status-badge ${STATUS_CLASS_NAMES[status]}`}>{STATUS_LABELS[status]}</span>
 
-        {currentUser?.emailAddress && <span className="sync-user">{currentUser.emailAddress}</span>}
 
         {document?.syncMetadata.lastSyncedAt && (
           <span className="timestamp">
-            Last synced: {new Date(document.syncMetadata.lastSyncedAt).toLocaleTimeString()}
+            {new Date(document.syncMetadata.lastSyncedAt).toLocaleTimeString()}
           </span>
         )}
+        {currentUser?.emailAddress && <span className="status-badge state-synced">{currentUser.emailAddress?.slice(0, 3)}</span>}
       </div>
 
       <div className="sync-controls">
@@ -88,7 +88,7 @@ export const SyncPanel = ({ document, isDbAvailable }: SyncPanelProps) => {
             disabled={isBusy}
             type="button"
           >
-            <Icon name="ri-plug-line" /> Connect Google Drive
+            <Icon name="ri-plug-line" />
           </button>
         )}
 
@@ -99,7 +99,7 @@ export const SyncPanel = ({ document, isDbAvailable }: SyncPanelProps) => {
             disabled={isBusy}
             type="button"
           >
-            <Icon name="ri-refresh-line" /> Reconnect Google Drive
+            <Icon name="ri-refresh-line" />
           </button>
         )}
 
@@ -110,21 +110,21 @@ export const SyncPanel = ({ document, isDbAvailable }: SyncPanelProps) => {
             disabled={isBusy}
             type="button"
           >
-            <Icon name="ri-refresh-line" /> Retry Sync
+            <Icon name="ri-refresh-line" />
           </button>
         )}
 
         {status === 'offline' && isConnected && (
           <span className="auto-sync-indicator">
-            <Icon name="ri-cloud-off-line" /> Changes saved locally
+            <Icon name="ri-cloud-off-line" />
           </span>
         )}
 
-        {canShowAutoSync && (
+        {/* {canShowAutoSync && (
           <span className="auto-sync-indicator">
             <Icon name="ri-checkbox-circle-fill" /> Auto-sync enabled
           </span>
-        )}
+        )} */}
 
         {isConnected && (
           <button
@@ -138,7 +138,7 @@ export const SyncPanel = ({ document, isDbAvailable }: SyncPanelProps) => {
             }
             type="button"
           >
-            <Icon name="ri-logout-box-line" /> Sign Out
+            <Icon name="ri-logout-box-line" />
           </button>
         )}
       </div>

@@ -15,7 +15,7 @@ const primitiveToString = (value: unknown): string => {
 };
 
 const JsonNode: React.FC<JsonNodeProps> = ({ label, value }) => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   if (Array.isArray(value)) {
     const canCollapse = value.length > 0;

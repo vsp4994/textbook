@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { type Category as CategoryType, type TodoItemType } from '../../types';
 import { Icon } from '../Icon';
 import { countCategoryItems, hasAnyCompletedItems, uncheckAllItems, sortTodoItems, hasAnyStarredItems } from '../../utils';
@@ -34,15 +34,29 @@ export const Category: React.FC<CategoryProps> = ({
   const counts = countCategoryItems(category);
   const hasStarred = hasAnyStarredItems(category);
 
+  // Session-only fold state. Clicking a category title opens/closes the
+  // category for the current session WITHOUT persisting it; the persisted
+  // `collapsed` value only changes through the "Keep open" dropdown option.
+  const [uiCollapsed, setUiCollapsed] = useState(category.collapsed);
+
+  // Reset the session-only fold state whenever the persisted `collapsed`
+  // changes (via "Keep open" or a drive sync) so the UI tracks the saved
+  // preference. Uses the render-time adjustment pattern (React's documented
+  // replacement for an effect here) to avoid cascading renders.
+  const [persistedCollapsed, setPersistedCollapsed] = useState(category.collapsed);
+  if (category.collapsed !== persistedCollapsed) {
+    setPersistedCollapsed(category.collapsed);
+    setUiCollapsed(category.collapsed);
+  }
+
   const handleCategoryTitleClick = () => {
-    onUpdateCategory(category.id, (c) => ({ collapsed: !c.collapsed }));
+    setUiCollapsed((c) => !c);
   };
 
   const handleAddTaskClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     const newTodoId = crypto.randomUUID();
     onUpdateCategory(category.id, (c) => ({
-      collapsed: false,
       items: [{
         id: newTodoId,
         title: '',
@@ -50,6 +64,9 @@ export const Category: React.FC<CategoryProps> = ({
         starred: false,
       }, ...c.items],
     }));
+    // Open the category for the session so the freshly added task is visible,
+    // without persisting the fold state.
+    setUiCollapsed(false);
     setFocusInputId(newTodoId);
   };
 
@@ -76,6 +93,12 @@ export const Category: React.FC<CategoryProps> = ({
   const handleSortCheckedToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     onUpdateCategory(category.id, (c) => ({ sortCheckedToBottom: !c.sortCheckedToBottom }));
+    setOpenDropdownId(null);
+  };
+
+  const handleKeepOpenToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    onUpdateCategory(category.id, (c) => ({ collapsed: !c.collapsed }));
     setOpenDropdownId(null);
   };
 
@@ -122,23 +145,24 @@ export const Category: React.FC<CategoryProps> = ({
       <div className="category-header">
         <div className="category-meta">
           <button className="category-header-title-button" onClick={handleCategoryTitleClick} type='button'>
-            <Icon name={category.collapsed ? "ri-arrow-right-s-line" : "ri-arrow-down-s-line"} className="fold-icon" />
+            <Icon name={uiCollapsed ? "ri-arrow-right-s-line" : "ri-arrow-down-s-line"} className="fold-icon" />
+            <Icon name={category.showCheckboxes ? "ri-list-view" : "ri-text-block"} className="category-mode-icon" />
             <span className="category-title">{category.title}</span>
             {hasStarred && <Icon name="ri-star-fill" className="category-star-icon" />}
-          </button>
           {counts.total > 0 && (
             <span className="category-count">
               ({counts.completed}/{counts.total} <Icon name="ri-check-line" className="checkmark" />)
             </span>
           )}
-          <button className="btn btn-add-task" onClick={handleAddTaskClick} type='button'>
-            <Icon name="ri-add-circle-fill" className="icon-primary" />
           </button>
         </div>
 
         <div className={`dropdown ${openDropdownId === category.id ? 'open' : ''}`}>
+          <button className="btn btn-add-task" onClick={handleAddTaskClick} type='button'>
+            <Icon name="ri-add-circle-fill" className="icon-primary" />
+          </button>
           <button
-            className="dropdown-trigger"
+            className="btn btn-dropdown-toggle"
             onClick={handleDropdownToggle}
             type='button'
           >
@@ -147,6 +171,10 @@ export const Category: React.FC<CategoryProps> = ({
           <div className="dropdown-menu">
             <button onClick={handleRenameClick} type='button'>
               Rename
+            </button>
+            <button onClick={handleKeepOpenToggle} type='button'>
+              <Icon name={category.collapsed ? "ri-checkbox-blank-line" : "ri-checkbox-fill"} />
+              <span style={{ marginLeft: '8px' }}>Keep open</span>
             </button>
             {category.showCheckboxes && (
               <button onClick={handleHideCheckedToggle} type='button'>
@@ -183,7 +211,7 @@ export const Category: React.FC<CategoryProps> = ({
         </div>
       </div>
 
-      {!category.collapsed && (
+      {!uiCollapsed && (
         <div className="category-body">
           {sortedItems.map(handleTodoItemRender)}
           {category.subcategories.map(handleSubcategoryRender)}
