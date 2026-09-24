@@ -537,8 +537,8 @@ body {
 
     &::before {
         content: '';
-        width: 9px;
-        height: 5px;
+        width: 7px;
+        height: 4px;
         border-left: 2px solid $success-color;
         border-bottom: 2px solid $success-color;
         transform: rotate(-45deg) scale(0);
