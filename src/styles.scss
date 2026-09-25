@@ -466,6 +466,7 @@ body {
     .category-title {
         font-weight: 600;
         user-select: none;
+        color: $text-color;
     }
 
     .category-star-icon {
@@ -631,10 +632,6 @@ body {
         font-size: 0.75rem;
         transition: transform $transition-speed;
     }
-
-    .list-items-count {
-        font-weight: 500;
-    }
 }
 
 // List title wrapper with fold toggle
@@ -670,37 +667,6 @@ body {
     .todo-title-input {
         flex-grow: 1;
         cursor: text;
-    }
-
-    .todo-title-text {
-        flex-grow: 1;
-        cursor: pointer;
-        font-weight: 500;
-        color: $text-color;
-        padding: 4px 8px;
-        border-radius: 4px;
-        transition: background $transition-speed;
-
-        &:hover {
-            background-color: rgba(0, 0, 0, 0.04);
-        }
-
-        &.completed {
-            text-decoration: line-through;
-            opacity: 0.6;
-        }
-    }
-
-    .list-items-count {
-        font-size: 0.8rem;
-        color: $text-muted;
-        font-weight: 500;
-        flex-shrink: 0;
-        white-space: nowrap;
-
-        .checkmark {
-            color: $success-color;
-        }
     }
 }
 
