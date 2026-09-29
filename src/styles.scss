@@ -590,6 +590,13 @@ body {
     }
 }
 
+.todo-notes-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+}
+
 .todo-notes {
     flex-grow: 1;
     border: 1px solid $border-color;
@@ -602,6 +609,10 @@ body {
 
     @media (max-width: 600px) {
         font-size: 0.8rem;
+        min-height: 100px;
+        // Hide the native drag dot on touch: the floating expand button takes
+        // its place. Desktop keeps the native handle for mouse users.
+        resize: none;
     }
 }
 
@@ -728,6 +739,25 @@ body {
                 color: $primary-color;
             }
         }
+    }
+}
+
+// Expand button for the notes textarea. It floats over the bottom-right corner
+// on mobile (exactly where the native drag dot sits) and is hidden on desktop,
+// where the native handle is still used with the mouse. Placed after `.icon-btn`
+// so the absolute positioning / background / border below override the base.
+.notes-expand-btn {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    z-index: 1;
+    display: none;
+    background-color: $card-bg;
+    border: 1px solid $border-color;
+    border-radius: 4px;
+
+    @media (max-width: 600px) {
+        display: flex;
     }
 }
 

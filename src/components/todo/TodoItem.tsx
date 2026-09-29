@@ -18,6 +18,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
   const copyTimerRef = useRef<number | null>(null);
   const [copied, setCopied] = useState(false);
+  const [notesExpanded, setNotesExpanded] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -64,6 +65,19 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   const handleNotesBlur = () => {
     if (!item.title.trim()) {
       onDeleteTodo(item.id);
+    }
+  };
+
+  // Mobile-only helper: toggles the notes textarea between its collapsed
+  // (100px) and expanded (400px) heights. The native drag-resize handle is
+  // fiddly to grab on touch screens, so this button offers a one-tap
+  // alternative. Desktop keeps the native handle and never shows this button.
+  const handleNotesExpandClick = () => {
+    const ta = inputRef.current;
+    if (ta instanceof HTMLTextAreaElement) {
+      const nextExpanded = !notesExpanded;
+      ta.style.height = nextExpanded ? '400px' : '100px';
+      setNotesExpanded(nextExpanded);
     }
   };
 
@@ -148,15 +162,26 @@ export const TodoItem: React.FC<TodoItemProps> = ({
             onBlur={handleTitleBlur}
           />
         ) : (
-          <textarea
-            id={`input-${item.id}`}
-            ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-            className="todo-notes"
-            value={item.title}
-            placeholder="Enter notes..."
-            onChange={handleNotesChange}
-            onBlur={handleNotesBlur}
-          />
+          <div className="todo-notes-wrap">
+            <textarea
+              id={`input-${item.id}`}
+              ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+              className="todo-notes"
+              value={item.title}
+              placeholder="Enter notes..."
+              onChange={handleNotesChange}
+              onBlur={handleNotesBlur}
+            />
+            <button
+              className="icon-btn notes-expand-btn"
+              type="button"
+              onClick={handleNotesExpandClick}
+              title={notesExpanded ? 'Collapse notes' : 'Expand notes'}
+              aria-label={notesExpanded ? 'Collapse notes' : 'Expand notes'}
+            >
+              <Icon name={notesExpanded ? 'ri-collapse-vertical-line' : 'ri-expand-height-line'} />
+            </button>
+          </div>
         )}
 
         <div className={`todo-row__actions ${!showCheckboxes && "is-vertical"}`}>
