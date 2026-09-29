@@ -71,6 +71,18 @@ export const deleteTodoItem = (categories: Category[], todoId: string): Category
   }));
 };
 
+// Deletes the checked items from a single category only (not its
+// subcategories). To clear a child category's checked items, call this with the
+// child's id directly.
+export const deleteCheckedTodoItems = (categories: Category[], categoryId: string): Category[] => {
+  return categories.map((cat) => {
+    if (cat.id === categoryId) {
+      return { ...cat, items: cat.items.filter((item) => !item.completed) };
+    }
+    return { ...cat, subcategories: deleteCheckedTodoItems(cat.subcategories, categoryId) };
+  });
+};
+
 export const sortTodoItems = (items: TodoItemType[], sortCheckedToBottom: boolean): TodoItemType[] => {
   return [...items].sort((a, b) => {
     // When "show checked at bottom" is enabled, checked items sink to the

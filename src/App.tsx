@@ -6,6 +6,7 @@ import { MAX_DEPTH, type Category, type TodoItemType, type TodoList } from './ty
 import type { ModalConfig } from './components/types/todoItem.types';
 import {
   deleteCategoryRecursive,
+  deleteCheckedTodoItems,
   deleteTodoItem,
   updateCategoriesRecursive,
   updateTodoItems,
@@ -60,8 +61,11 @@ const AppContent = ({ document }: AppContentProps) => {
       }
     };
 
-    window.document.addEventListener('click', handleClickOutside);
-    return () => window.document.removeEventListener('click', handleClickOutside);
+    // Listen in the capture phase: task-action buttons (delete/copy/star) call
+    // stopPropagation(), which would otherwise prevent this bubble-phase
+    // listener from firing and leave the tab-options-menu open.
+    window.document.addEventListener('click', handleClickOutside, true);
+    return () => window.document.removeEventListener('click', handleClickOutside, true);
   }, []);
 
   const getActiveList = (): TodoList | undefined =>
@@ -142,7 +146,7 @@ const AppContent = ({ document }: AppContentProps) => {
     const newCategory: Category = {
       id: generateUUID(),
       title: categoryTitle.trim(),
-      collapsed: false,
+      collapsed: true,
       hideCheckedItems: false,
       showCheckboxes: true,
       sortCheckedToBottom: false,
@@ -207,6 +211,33 @@ const AppContent = ({ document }: AppContentProps) => {
     });
   };
 
+  const handleDeleteAllChecked = (categoryId: string, title: string) => {
+    if (!doc) return;
+
+    setOpenDropdownId(null);
+    setModalConfig({
+      isOpen: true,
+      type: 'danger',
+      title: 'Delete Checked Items',
+      message: `Delete all checked items in "${title}"? This only affects this category's own checked items and cannot be undone.`,
+      onConfirm: () => {
+        updateDocument({
+          ...doc,
+          lists: doc.lists.map((list) =>
+            list.id === activeListId
+              ? {
+                  ...list,
+                  categories: deleteCheckedTodoItems(list.categories, categoryId),
+                }
+              : list
+          ),
+        });
+      },
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+    });
+  };
+
   const handleAddSubcategory = (parentCategory: Category) => {
     if (parentCategory.depth >= MAX_DEPTH) {
       alert(`Nesting limit reached! Maximum nesting level is ${MAX_DEPTH}.`);
@@ -219,7 +250,7 @@ const AppContent = ({ document }: AppContentProps) => {
     const newSubcategory: Category = {
       id: generateUUID(),
       title: title.trim(),
-      collapsed: false,
+      collapsed: true,
       hideCheckedItems: parentCategory.hideCheckedItems,
       showCheckboxes: parentCategory.showCheckboxes,
       sortCheckedToBottom: parentCategory.sortCheckedToBottom,
@@ -316,6 +347,7 @@ const AppContent = ({ document }: AppContentProps) => {
       onUpdateCategory={handleUpdateCategory}
       onAddSubcategory={handleAddSubcategory}
       onDeleteCategory={handleDeleteCategory}
+      onDeleteAllChecked={handleDeleteAllChecked}
       openDropdownId={openDropdownId}
       setOpenDropdownId={setOpenDropdownId}
       setFocusInputId={setFocusInputId}
@@ -346,6 +378,11 @@ const AppContent = ({ document }: AppContentProps) => {
     setActiveListId(listId);
     if (!doc) return;
     updateDocument({ ...doc, activeListId: listId }, false);
+  };
+
+  const handleSelectList = (listId: string) => {
+    handleTabClick(listId);
+    setTabMenuOpen(false);
   };
 
   const handleModalClose = () => {
@@ -408,7 +445,15 @@ const AppContent = ({ document }: AppContentProps) => {
                   renderItem={(list) => (
                     <>
                       <Icon name="ri-draggable" className="tab-options-drag reorder-handle" />
-                      <span className="tab-options-title">{list.title}</span>
+                      <button
+                        className="tab-options-title"
+                        onClick={() => handleSelectList(list.id)}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        type="button"
+                        title={`Go to ${list.title}`}
+                      >
+                        {list.title}
+                      </button>
                       {list.id === activeListId && (
                         <Icon name="ri-check-line" className="tab-options-active" />
                       )}
@@ -460,8 +505,14 @@ const AppContent = ({ document }: AppContentProps) => {
             )}
           </div>
         ) : (
-          <div className="empty-state">
-            Create a list to get started.
+          <div className="empty-state empty-state-hero">
+            <div className="empty-state-icon">
+              <Icon name="ri-book-open-line" />
+            </div>
+            <h2 className="empty-state-title">Every story starts with a blank page.</h2>
+            <p className="empty-state-subtitle">
+              Create your first list and give your notes, plans, and ideas a home.
+            </p>
           </div>
         )}
       </main>

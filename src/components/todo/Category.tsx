@@ -8,6 +8,7 @@ interface CategoryProps {
   onUpdateCategory: (categoryId: string, mutation: (cat: CategoryType) => Partial<CategoryType>) => void;
   onAddSubcategory: (category: CategoryType) => void;
   onDeleteCategory: (categoryId: string, title: string) => void;
+  onDeleteAllChecked: (categoryId: string, title: string) => void;
   openDropdownId: string | null;
   setOpenDropdownId: (id: string | null) => void;
   setFocusInputId: (id: string | null) => void;
@@ -25,6 +26,7 @@ export const Category: React.FC<CategoryProps> = ({
   onUpdateCategory,
   onAddSubcategory,
   onDeleteCategory,
+  onDeleteAllChecked,
   openDropdownId,
   setOpenDropdownId,
   setFocusInputId,
@@ -130,6 +132,12 @@ export const Category: React.FC<CategoryProps> = ({
     setOpenDropdownId(null);
   };
 
+  const handleDeleteAllCheckedClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    onDeleteAllChecked(category.id, category.title);
+    setOpenDropdownId(null);
+  };
+
   const handleTodoItemRender = (item: TodoItemType) => {
     return renderTodoItem(item, category.hideCheckedItems, category.showCheckboxes, category.id);
   };
@@ -140,6 +148,18 @@ export const Category: React.FC<CategoryProps> = ({
 
   const sortedItems = sortTodoItems([...category.items].reverse(), category.sortCheckedToBottom);
 
+  const remainingCount = counts.total - counts.completed;
+  let remainingIndicator;
+  if (remainingCount > 0) {
+    remainingIndicator = (
+      <span className="category-count">
+        · {remainingCount} left
+      </span>
+    );
+  } else if (counts.total !== 0) {
+    remainingIndicator = <Icon name="ri-checkbox-circle-fill" className="checkmark" />;
+  }
+
   return (
     <div key={category.id} className={`category-card depth-${category.depth}${openDropdownId === category.id ? ' dropdown-open' : ''}`}>
       <div className="category-header">
@@ -149,11 +169,7 @@ export const Category: React.FC<CategoryProps> = ({
             <Icon name={category.showCheckboxes ? "ri-list-view" : "ri-text-block"} className="category-mode-icon" />
             <span className="category-title">{category.title}</span>
             {hasStarred && <Icon name="ri-star-fill" className="category-star-icon" />}
-          {counts.total > 0 && (
-            <span className="category-count">
-              ({counts.completed}/{counts.total} <Icon name="ri-check-line" className="checkmark" />)
-            </span>
-          )}
+            {remainingIndicator}
           </button>
         </div>
 
@@ -204,6 +220,11 @@ export const Category: React.FC<CategoryProps> = ({
             <button disabled={category.depth >= 3} onClick={handleAddSubcategoryClick} type='button'>
               Add Subcategory
             </button>
+            {hasCheckedItems && (
+              <button className="delete-action" onClick={handleDeleteAllCheckedClick} type='button'>
+                Delete all checked
+              </button>
+            )}
             <button className="delete-action" onClick={handleDeleteCategoryClick} type='button'>
               Delete Category
             </button>
