@@ -14,9 +14,9 @@ interface CategoryProps {
   setFocusInputId: (id: string | null) => void;
   renderTodoItem: (
     item: TodoItemType,
-    hideChecked: boolean,
     showCheckboxes: boolean,
-    categoryId?: string
+    categoryId?: string,
+    sortCheckedToBottom?: boolean
   ) => React.ReactNode;
   renderCategory: (category: CategoryType) => React.ReactNode;
 }
@@ -62,6 +62,7 @@ export const Category: React.FC<CategoryProps> = ({
       items: [{
         id: newTodoId,
         title: '',
+        description: '',
         completed: false,
         starred: false,
       }, ...c.items],
@@ -83,12 +84,6 @@ export const Category: React.FC<CategoryProps> = ({
     if (newTitle?.trim()) {
       onUpdateCategory(category.id, () => ({ title: newTitle.trim() }));
     }
-    setOpenDropdownId(null);
-  };
-
-  const handleHideCheckedToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation();
-    onUpdateCategory(category.id, (c) => ({ hideCheckedItems: !c.hideCheckedItems }));
     setOpenDropdownId(null);
   };
 
@@ -139,7 +134,7 @@ export const Category: React.FC<CategoryProps> = ({
   };
 
   const handleTodoItemRender = (item: TodoItemType) => {
-    return renderTodoItem(item, category.hideCheckedItems, category.showCheckboxes, category.id);
+    return renderTodoItem(item, category.showCheckboxes, category.id, category.sortCheckedToBottom);
   };
 
   const handleSubcategoryRender = (sub: CategoryType) => {
@@ -166,7 +161,7 @@ export const Category: React.FC<CategoryProps> = ({
         <div className="category-meta">
           <button className="category-header-title-button" onClick={handleCategoryTitleClick} type='button'>
             <Icon name={uiCollapsed ? "ri-arrow-right-s-line" : "ri-arrow-down-s-line"} className="fold-icon" />
-            <Icon name={category.showCheckboxes ? "ri-list-view" : "ri-text-block"} className="category-mode-icon" />
+            {/* <Icon name={category.showCheckboxes ? "ri-list-view" : "ri-text-block"} className="category-mode-icon" /> */}
             <span className="category-title">{category.title}</span>
             {hasStarred && <Icon name="ri-star-fill" className="category-star-icon" />}
             {remainingIndicator}
@@ -193,22 +188,16 @@ export const Category: React.FC<CategoryProps> = ({
               <span style={{ marginLeft: '8px' }}>Keep open</span>
             </button>
             {category.showCheckboxes && (
-              <button onClick={handleHideCheckedToggle} type='button'>
-                <Icon name={category.hideCheckedItems ? "ri-checkbox-fill" : "ri-checkbox-blank-line"} />
-                <span style={{ marginLeft: '8px' }}>Hide checked</span>
-              </button>
-            )}
-            {category.showCheckboxes && (
               <button onClick={handleSortCheckedToggle} type='button'>
                 <Icon name={category.sortCheckedToBottom ? "ri-checkbox-fill" : "ri-checkbox-blank-line"} />
                 <span style={{ marginLeft: '8px' }}>Show checked at bottom</span>
               </button>
             )}
             <button onClick={handleModeToggle} disabled={hasCheckedItems} type='button'>
-              {category.showCheckboxes ? 'Switch to NOTES mode' : 'Switch to TASK Mode'}<br />
+              {category.showCheckboxes ? 'Hide checkboxes' : 'Show checkboxes'}<br />
               {hasCheckedItems && (
                 <span className="mode-toggle-note">
-                  Uncheck all to switch mode
+                  Uncheck all to hide check-boxes
                 </span>
               )}
             </button>
@@ -232,12 +221,22 @@ export const Category: React.FC<CategoryProps> = ({
         </div>
       </div>
 
-      {!uiCollapsed && (
-        <div className="category-body">
-          {sortedItems.map(handleTodoItemRender)}
-          {category.subcategories.map(handleSubcategoryRender)}
+      {/* The body stays mounted and animates its height (grid-template-rows
+          0fr <-> 1fr) so folding reads as a smooth open/close on every depth,
+          instead of the content popping in/out. `inert` keeps the folded
+          content out of the tab order and clicks while collapsed. */}
+      <div className={`category-body${uiCollapsed ? ' is-collapsed' : ''}`}>
+        {/* Dedicated collapse wrapper with NO padding of its own. The outer
+            .category-body collapses the track via 0fr; this wrapper collapses
+            its own track via 0fr + overflow: hidden so the folded height is
+            truly 0 even though .category-body__inner keeps its 8px padding. */}
+        <div className="category-body__collapse" inert={uiCollapsed}>
+          <div className="category-body__inner">
+            {sortedItems.map(handleTodoItemRender)}
+            {category.subcategories.map(handleSubcategoryRender)}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

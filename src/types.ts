@@ -1,6 +1,7 @@
 export interface TodoItemType {
   id: string;
   title: string;
+  description: string;
   completed: boolean;
   starred: boolean;
 }
@@ -9,7 +10,6 @@ export interface Category {
   id: string;
   title: string;
   collapsed: boolean;
-  hideCheckedItems: boolean;
   showCheckboxes: boolean;
   sortCheckedToBottom: boolean;
   items: TodoItemType[];

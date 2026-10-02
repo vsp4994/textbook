@@ -104,6 +104,13 @@ const mergeTodoItem: MergeEntity<TodoItemType> = (
 ) => ({
   id: local.id,
   title: chooseValue(base?.title, local.title, remote.title, hasBase, preferLocal),
+  description: chooseValue(
+    base?.description,
+    local.description,
+    remote.description,
+    hasBase,
+    preferLocal
+  ),
   completed: chooseValue(base?.completed, local.completed, remote.completed, hasBase, preferLocal),
   starred: chooseValue(base?.starred, local.starred, remote.starred, hasBase, preferLocal),
 });
@@ -118,13 +125,6 @@ const mergeCategory: MergeEntity<Category> = (
   id: local.id,
   title: chooseValue(base?.title, local.title, remote.title, hasBase, preferLocal),
   collapsed: chooseValue(base?.collapsed, local.collapsed, remote.collapsed, hasBase, preferLocal),
-  hideCheckedItems: chooseValue(
-    base?.hideCheckedItems,
-    local.hideCheckedItems,
-    remote.hideCheckedItems,
-    hasBase,
-    preferLocal
-  ),
   showCheckboxes: chooseValue(
     base?.showCheckboxes,
     local.showCheckboxes,

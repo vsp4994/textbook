@@ -44,18 +44,6 @@ const AppContent = ({ document }: AppContentProps) => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('.dropdown') && !target.closest('.btn-add-task')) {
-        setOpenDropdownId(null);
-      }
-    };
-
-    window.document.addEventListener('click', handleClickOutside);
-    return () => window.document.removeEventListener('click', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
       if (!target.closest('.tab-options')) {
         setTabMenuOpen(false);
       }
@@ -66,6 +54,26 @@ const AppContent = ({ document }: AppContentProps) => {
     // listener from firing and leave the tab-options-menu open.
     window.document.addEventListener('click', handleClickOutside, true);
     return () => window.document.removeEventListener('click', handleClickOutside, true);
+  }, []);
+
+  useEffect(() => {
+    const handleDropdownClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      // Only the currently-open dropdown (the one with `.open`) may keep its
+      // menu open. Checking `.open` (instead of any `.dropdown`/`.btn-add-task`)
+      // means clicking e.g. a category's "add task" (+) button — which lives
+      // inside its own `.dropdown` — still closes a task menu that is open.
+      if (!target.closest('.dropdown.open')) {
+        setOpenDropdownId(null);
+      }
+    };
+
+    // Listen in the capture phase: the task/category action buttons (copy,
+    // delete, star, more-toggle, category toggles, ...) call stopPropagation(),
+    // which would otherwise prevent this bubble-phase listener from firing and
+    // leave the task-options dropdown open when clicking elsewhere.
+    window.document.addEventListener('click', handleDropdownClickOutside, true);
+    return () => window.document.removeEventListener('click', handleDropdownClickOutside, true);
   }, []);
 
   const getActiveList = (): TodoList | undefined =>
@@ -147,7 +155,6 @@ const AppContent = ({ document }: AppContentProps) => {
       id: generateUUID(),
       title: categoryTitle.trim(),
       collapsed: true,
-      hideCheckedItems: false,
       showCheckboxes: true,
       sortCheckedToBottom: false,
       items: [],
@@ -251,7 +258,6 @@ const AppContent = ({ document }: AppContentProps) => {
       id: generateUUID(),
       title: title.trim(),
       collapsed: true,
-      hideCheckedItems: parentCategory.hideCheckedItems,
       showCheckboxes: parentCategory.showCheckboxes,
       sortCheckedToBottom: parentCategory.sortCheckedToBottom,
       items: [],
@@ -303,6 +309,7 @@ const AppContent = ({ document }: AppContentProps) => {
     const newTodo: TodoItemType = {
       id: generateUUID(),
       title: '',
+      description: '',
       completed: false,
       starred: false,
     };
@@ -320,22 +327,22 @@ const AppContent = ({ document }: AppContentProps) => {
 
   const renderTodoItem = (
     item: TodoItemType,
-    hideChecked: boolean,
     showCheckboxes: boolean,
-    categoryId?: string
+    categoryId?: string,
+    sortCheckedToBottom = false
   ): ReactNode => (
     <TodoItem
       key={item.id}
       item={item}
-      hideChecked={hideChecked}
       showCheckboxes={showCheckboxes}
+      sortCheckedToBottom={sortCheckedToBottom}
       categoryId={categoryId}
       focusInputId={focusInputId}
       setFocusInputId={setFocusInputId}
+      openDropdownId={openDropdownId}
       onUpdateTodo={handleUpdateTodo}
       onDeleteTodo={handleDeleteTodo}
       onAddTodoAfter={handleAddTodoAfter}
-      onSetModalConfig={setModalConfig}
       setOpenDropdownId={setOpenDropdownId}
     />
   );

@@ -12,14 +12,14 @@ export interface ModalConfig {
 
 export interface TodoItemProps {
   item: TodoItemType;
-  hideChecked: boolean;
   showCheckboxes: boolean;
+  sortCheckedToBottom: boolean;
   categoryId?: string;
   focusInputId: string | null;
   setFocusInputId: (id: string | null) => void;
+  openDropdownId: string | null;
   onUpdateTodo: (todoId: string, mutation: (item: TodoItemType) => Partial<TodoItemType>) => void;
   onDeleteTodo: (todoId: string) => void;
   onAddTodoAfter: (categoryId: string, todoId: string) => void;
-  onSetModalConfig: (config: ModalConfig) => void;
   setOpenDropdownId: (id: string | null) => void;
 }

@@ -328,9 +328,31 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 8px;
 
+    // Mobile keeps its proven single-column vertical scroll — untouched.
     @media (max-width: 600px) {
         grid-template-columns: 1fr;
         gap: 12px;
+    }
+
+    // On web, lay the category cards out side-by-side like a kanban board
+    // instead of letting them wrap below: a single non-wrapping row with
+    // horizontal scrolling. Fixed-width columns plus `align-items: flex-start`
+    // (instead of the grid's stretch behaviour) also mean only the actively
+    // expanded card grows — other cards no longer look like they "open" when a
+    // neighbour is expanded/collapsed.
+    @media (min-width: 601px) {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: flex-start;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 8px;
+
+        > .category-card {
+            flex: 0 0 300px;
+            min-width: 300px;
+        }
     }
 }
 
@@ -491,10 +513,55 @@ body {
 }
 
 .category-body {
-    padding: 8px 4px 8px 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    // Always mounted (rather than conditionally rendered) so open/close can be
+    // animated. Height collapse is TWO nested grid tracks, both animating
+    // between 1fr (open) and 0fr (collapsed):
+    //   - the outer .category-body collapses its own track;
+    //   - the padding-less .category-body__collapse collapses its own track and
+    //     clips its content only while collapsing, so the folded height is
+    //     truly 0 even though .category-body__inner keeps its 8px padding.
+    // `grid-template-columns: minmax(0, 1fr)` + `min-width: 0` through the
+    // whole chain (body -> collapse -> inner -> todo-row -> title input) keeps
+    // deeply nested cards (depth 2/3) and long titles from overflowing the card.
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 1fr;
+    // Animate both directions: opening (0fr -> 1fr) and closing (1fr -> 0fr).
+    transition: grid-template-rows $transition-speed ease;
+    min-width: 0;
+
+    .category-body__collapse {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: 1fr;
+        transition: grid-template-rows $transition-speed ease;
+        // Lets the track collapse fully to 0fr (min-height: 0 is required for
+        // the grid item to shrink below its content height).
+        min-height: 0;
+        min-width: 0;
+    }
+
+    .category-body__inner {
+        padding: 8px 4px 8px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+        min-height: 0;
+    }
+
+    &.is-collapsed {
+        grid-template-rows: 0fr;
+
+        // This wrapper has no padding, so its 0fr track folds to 0 even though
+        // __inner keeps 8px of padding. Clip only while collapsed so
+        // absolutely-positioned task/category dropdown menus (which may reach
+        // past a card edge) are never cut off while the card is open.
+        .category-body__collapse {
+            grid-template-rows: 0fr;
+            overflow: hidden;
+        }
+    }
 
     @media (max-width: 600px) {
         // padding: 12px;
@@ -506,22 +573,26 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
+
+    // When the task's description editor is open, remove the gap so the
+    // textarea sits flush against (visually attached to) its task row.
+    &.is-description-open {
+        gap: 0;
+    }
 }
 
 .todo-row {
     display: flex;
     align-items: center;
     gap: 4px;
+    // Lets this flex row (and its flex-grow title input) shrink inside the
+    // grid-track chain (category-body -> collapse -> inner) at depth 2/3 so
+    // long titles wrap instead of overflowing the card.
+    min-width: 0;
 
     &__actions {
         display: flex;
         gap: 4px;
-
-        &.is-vertical {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
     }
 
 }
@@ -538,7 +609,8 @@ body {
     cursor: pointer;
     display: grid;
     place-content: center;
-    transition: border-color $transition-speed;
+    transition: border-color $transition-speed ease, transform $transition-speed ease;
+    flex-shrink: 0;
 
     &::before {
         content: '';
@@ -559,6 +631,13 @@ body {
         }
     }
 
+    // A quick depress as the checkbox is clicked gives tactile feedback that
+    // pairs with the item moving to the bottom when "Show checked at bottom"
+    // is enabled.
+    &:active {
+        transform: scale(0.85);
+    }
+
     &:focus-visible {
         outline: 3px solid $focus-color;
         outline-offset: 2px;
@@ -567,6 +646,10 @@ body {
 
 .todo-title-input {
     flex-grow: 1;
+    // Must be allowed to shrink within .todo-row above; without min-width: 0
+    // the input's min-content width forces the row — and thus the nested
+    // category card — wider than its container at depth 2/3.
+    min-width: 0;
     border: none;
     border-bottom: 1px dashed transparent;
     background-color: transparent;
@@ -590,29 +673,86 @@ body {
     }
 }
 
-.todo-notes-wrap {
+// Description editor shown below a task ("Add description" from the task menu,
+// or the eye toggle). It opens collapsed at 100px, and expands to a comfortable
+// 400px editing height via the expand button. The native drag handle is hidden
+// (resize: none) — the floating expand button takes its place on all screen
+// sizes. With no margin/gap against the task row above, it reads as part of the
+// same task.
+.todo-description-wrap {
     position: relative;
-    flex: 1;
-    min-width: 0;
-    display: flex;
 }
 
-.todo-notes {
-    flex-grow: 1;
-    border: 1px solid $border-color;
-    border-radius: 4px;
-    background-color: rgba($border-color, 0.5);
-    padding: 6px;
-    font-size: 0.85rem;
+.todo-description {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100px;
     min-height: 100px;
-    resize: vertical;
+    margin: 0;
+    padding: 8px;
+    border: none;
+    border-top: none;
+    border-radius: 0;
+    background-color: $bg-color;
+    color: $text-color;
+    font-size: 0.85rem;
+    resize: none;
+
+    &.is-expanded {
+        height: 400px;
+    }
+
+    &:focus {
+        outline: none;
+        border-color: none;
+    }
 
     @media (max-width: 600px) {
         font-size: 0.8rem;
-        min-height: 100px;
-        // Hide the native drag dot on touch: the floating expand button takes
-        // its place. Desktop keeps the native handle for mouse users.
-        resize: none;
+        line-height: 1rem;
+        border-radius: 0 0 6px 6px;
+    }
+}
+
+// Expand button for the description textarea. The drag handle is hidden, so
+// this floating button is the expand/collapse control on all screen sizes. It
+// sits over the bottom-right corner (where the native drag dot would be).
+// The `!important` keeps the card background/border over the `.icon-btn` base
+// (defined later in the file).
+.description-expand-btn {
+    position: absolute;
+    right: 16px;
+    bottom: 18px;
+    z-index: 1;
+    display: flex;
+    background-color: $card-bg !important;
+    border: 1px solid $border-color !important;
+    border-radius: 4px;
+
+    @media (max-width: 600px) {
+        right: 2px;
+        bottom: 8px;
+    }
+}
+
+// Task "more" (3-dot) menu that replaced the old copy/delete icon buttons.
+// It reuses the shared `.dropdown` behavior so the app-level click-outside
+// handler closes it, and keeps its own menu a bit more compact than the
+// category menus because task rows are narrower.
+.todo-menu {
+    .todo-menu__dropdown {
+        min-width: 180px;
+    }
+}
+
+// Eye toggle that shows/hides a task's description. Shown whenever a task has
+// a description, regardless of whether checkboxes are hidden.
+.description-toggle-btn {
+    color: $primary-color !important;
+    @media (hover: hover) and (pointer: fine) {
+        &:hover:not(:disabled) {
+            background-color: rgba($primary-color, 0.15);
+        }
     }
 }
 
@@ -742,25 +882,6 @@ body {
     }
 }
 
-// Expand button for the notes textarea. It floats over the bottom-right corner
-// on mobile (exactly where the native drag dot sits) and is hidden on desktop,
-// where the native handle is still used with the mouse. Placed after `.icon-btn`
-// so the absolute positioning / background / border below override the base.
-.notes-expand-btn {
-    position: absolute;
-    right: 2px;
-    bottom: 2px;
-    z-index: 1;
-    display: none;
-    background-color: $card-bg;
-    border: 1px solid $border-color;
-    border-radius: 4px;
-
-    @media (max-width: 600px) {
-        display: flex;
-    }
-}
-
 // Reorder List (generic drag-to-reorder)
 .reorder-list {
     display: flex;
@@ -852,7 +973,7 @@ body {
         border: 1px solid $border-color;
         border-radius: $border-radius;
         box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-        padding: 6px;
+        // padding: 6px;
         min-width: 240px;
         max-width: 320px;
 
@@ -871,7 +992,7 @@ body {
         }
 
         .tab-options-list {
-            max-height: 320px;
+            max-height: 420px;
             overflow-y: auto;
         }
     }
@@ -915,28 +1036,6 @@ body {
 .tab-options-active {
     color: $primary-color;
     flex-shrink: 0;
-}
-
-.tab-options-action {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: none;
-    border: none;
-    color: $text-muted;
-    padding: 4px;
-    border-radius: 4px;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: color $transition-speed;
-
-    &:hover {
-        color: $primary-color;
-    }
-
-    &.is-danger:hover {
-        color: $danger-color;
-    }
 }
 
 // Buttons & CTA styles

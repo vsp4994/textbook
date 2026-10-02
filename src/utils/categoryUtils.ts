@@ -147,6 +147,7 @@ export const migrateTodoItems = (items: TodoItemType[]): TodoItemType[] => {
   return items.map((item) => ({
     id: item.id,
     title: item.title,
+    description: item.description ?? '',
     completed: item.completed,
     starred: item.starred ?? false,
   }));
