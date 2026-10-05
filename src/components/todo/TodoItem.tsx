@@ -17,7 +17,6 @@ export const TodoItem: React.FC<TodoItemProps> = ({
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
-  const chipTextRef = useRef<HTMLSpanElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const copyTimerRef = useRef<number | null>(null);
   const prevCompletedRef = useRef(item.completed);
@@ -25,7 +24,6 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   const [descriptionOpen, setDescriptionOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionScrollable, setDescriptionScrollable] = useState(false);
-  const [descriptionTruncated, setDescriptionTruncated] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -63,7 +61,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   }, [focusInputId, item.id, setFocusInputId]);
 
   // Focus the description editor whenever it opens (via "Add Description" or
-  // the description chip) so the user can start typing right away.
+  // the eye toggle) so the user can start typing right away.
   useEffect(() => {
     if (descriptionOpen && descriptionRef.current) {
       descriptionRef.current.focus();
@@ -88,23 +86,6 @@ export const TodoItem: React.FC<TodoItemProps> = ({
     ro.observe(el);
     return () => ro.disconnect();
   }, [descriptionOpen, descriptionExpanded, item.description]);
-
-  // Whether the single-line description chip truncates its text. The ellipsis
-  // and the fade in the chip's right corner are only relevant when the
-  // description doesn't fit — a ResizeObserver keeps the fade synced with the
-  // available width (and with the text itself), mirroring the expand detection.
-  useLayoutEffect(() => {
-    const el = chipTextRef.current;
-    if (!el) {
-      setDescriptionTruncated(false);
-      return;
-    }
-    const update = () => setDescriptionTruncated(el.scrollWidth > el.clientWidth + 1);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [item.description]);
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onUpdateTodo(item.id, () => ({ completed: e.target.checked }));
@@ -223,7 +204,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
     <div
       key={item.id}
       ref={rootRef}
-      className={`todo-item${descriptionOpen ? ' is-description-open' : ''}${hasDescription ? ' has-description' : ''}`}
+      className={`todo-item${descriptionOpen ? ' is-description-open' : ''}`}
     >
       <div className="todo-row">
         {showCheckboxes && (
@@ -234,15 +215,6 @@ export const TodoItem: React.FC<TodoItemProps> = ({
             onChange={handleCheckboxChange}
           />
         )}
-
-        {/* {hasDescription && (
-          // Decorative "has description" indicator at the start of the row. It
-          // keeps the primary-colored quote icon, but is no longer a button —
-          // the full-width single-line chip below the task is the toggle now.
-          <span className="description-indicator" aria-hidden="true" title="Has description">
-            <Icon name="ri-quote-text" />
-          </span>
-        )} */}
 
         <input
           id={`input-${item.id}`}
@@ -256,7 +228,21 @@ export const TodoItem: React.FC<TodoItemProps> = ({
           onBlur={handleTitleBlur}
         />
 
-
+        {hasDescription && (
+          <button
+            className="icon-btn description-toggle-btn"
+            type="button"
+            // Keep focus on the textarea while the eye is clicked so the blur
+            // handler doesn't close (then reopen) the editor; the toggle below
+            // is what decides open vs closed.
+            onPointerDown={(e) => e.preventDefault()}
+            onClick={handleDescriptionToggle}
+            title={descriptionOpen ? 'Hide description' : 'Show description'}
+            aria-label={descriptionOpen ? 'Hide description' : 'Show description'}
+          >
+            <Icon name="ri-quote-text" />
+          </button>
+        )}
 
         <div className="todo-row__actions">
           <button
@@ -294,28 +280,6 @@ export const TodoItem: React.FC<TodoItemProps> = ({
         </div>
       </div>
 
-      {/* The chip is the collapsed state and the editor is the open state, so
-          only one is ever visible. Clicking the chip opens the editor. */}
-      {hasDescription && !descriptionOpen && (
-        <button
-          type="button"
-          className="todo-description-chip"
-          // Keep focus on the textarea while the chip is clicked so the blur
-          // handler doesn't close (then reopen) the editor.
-          onPointerDown={(e) => e.preventDefault()}
-          onClick={handleDescriptionToggle}
-          title="Show description"
-        >
-          <span className="description-indicator" aria-hidden="true" title="Has description">
-            <Icon name="ri-quote-text" />
-          </span>
-          <span ref={chipTextRef} className="todo-description-chip__text">
-            {item.description}
-          </span>
-          {descriptionTruncated && <span className="todo-description-chip__fade" aria-hidden="true" />}
-        </button>
-      )}
-
       {descriptionOpen && (
         <div className="todo-description-wrap">
           <textarea
@@ -333,7 +297,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
             aria-label={descriptionExpanded ? 'Collapse description' : 'Expand description'}
             // Keep focus on the textarea while the expand button is clicked so
             // the blur handler doesn't close the editor; the pointerdown
-            // preventDefault mirrors the description chip.
+            // preventDefault mirrors the eye toggle.
             onPointerDown={(e) => e.preventDefault()}
             onClick={handleDescriptionExpandClick}
             style={{ display: descriptionScrollable ? undefined : 'none' }}
