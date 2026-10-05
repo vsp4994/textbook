@@ -235,15 +235,6 @@ export const TodoItem: React.FC<TodoItemProps> = ({
           />
         )}
 
-        {/* {hasDescription && (
-          // Decorative "has description" indicator at the start of the row. It
-          // keeps the primary-colored quote icon, but is no longer a button —
-          // the full-width single-line chip below the task is the toggle now.
-          <span className="description-indicator" aria-hidden="true" title="Has description">
-            <Icon name="ri-quote-text" />
-          </span>
-        )} */}
-
         <input
           id={`input-${item.id}`}
           ref={inputRef}
@@ -256,7 +247,21 @@ export const TodoItem: React.FC<TodoItemProps> = ({
           onBlur={handleTitleBlur}
         />
 
-
+        {hasDescription && (
+          <button
+            className="icon-btn description-toggle-btn"
+            type="button"
+            // Keep focus on the textarea while the eye is clicked so the blur
+            // handler doesn't close (then reopen) the editor; the toggle below
+            // is what decides open vs closed.
+            onPointerDown={(e) => e.preventDefault()}
+            onClick={handleDescriptionToggle}
+            title={descriptionOpen ? 'Hide description' : 'Show description'}
+            aria-label={descriptionOpen ? 'Hide description' : 'Show description'}
+          >
+            <Icon name="ri-quote-text" />
+          </button>
+        )}
 
         <div className="todo-row__actions">
           <button
@@ -306,9 +311,6 @@ export const TodoItem: React.FC<TodoItemProps> = ({
           onClick={handleDescriptionToggle}
           title="Show description"
         >
-          <span className="description-indicator" aria-hidden="true" title="Has description">
-            <Icon name="ri-quote-text" />
-          </span>
           <span ref={chipTextRef} className="todo-description-chip__text">
             {item.description}
           </span>

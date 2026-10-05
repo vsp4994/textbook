@@ -349,7 +349,7 @@ body {
         overflow-y: hidden;
         padding-bottom: 8px;
 
-        > .category-card {
+        >.category-card {
             flex: 0 0 300px;
             min-width: 300px;
         }
@@ -752,6 +752,15 @@ body {
     }
 }
 
+.description-toggle-btn {
+    color: $primary-color !important;
+    @media (hover: hover) and (pointer: fine) {
+        &:hover:not(:disabled) {
+            background-color: rgba($primary-color, 0.15);
+        }
+    }
+}
+
 // Decorative "has description" quote icon at the start of a task row. It keeps
 // the primary color but is no longer a button — toggling the description is now
 // done through the full-width single-line chip below the task, so this icon is
@@ -760,7 +769,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding:0 8px;
+    padding: 0 8px;
     color: $primary-color;
     user-select: none;
     cursor: default;
@@ -780,8 +789,8 @@ body {
     align-items: center;
     box-sizing: border-box;
     // width: 100%;
-    margin:0px 0px 0px 26px;
-    padding: 3px 0px;
+    margin: 0px 0px 0px 26px;
+    padding: 3px 6px;
     border: none;
     border-radius: 0px 0px 5px 5px;
     background-color: rgba($primary-color, 0.08);
