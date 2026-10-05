@@ -574,8 +574,15 @@ body {
     flex-direction: column;
     gap: 8px;
 
-    // When the task's description editor is open, remove the gap so the
-    // textarea sits flush against (visually attached to) its task row.
+    // A task that has a description carries the single-line preview chip tucked
+    // flush underneath its row (it sticks to the bottom of the task), so remove
+    // the usual gap between the row and the chip.
+    &.has-description {
+        gap: 0;
+    }
+
+    // When the task's description editor is open (in place of the chip), remove
+    // the gap so the textarea sits flush against (visually attached to) its row.
     &.is-description-open {
         gap: 0;
     }
@@ -745,14 +752,79 @@ body {
     }
 }
 
-// Eye toggle that shows/hides a task's description. Shown whenever a task has
-// a description, regardless of whether checkboxes are hidden.
-.description-toggle-btn {
-    color: $primary-color !important;
+// Decorative "has description" quote icon at the start of a task row. It keeps
+// the primary color but is no longer a button — toggling the description is now
+// done through the full-width single-line chip below the task, so this icon is
+// purely informational. Padding matches `.icon-btn` so the row doesn't shift.
+.description-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding:0 8px;
+    color: $primary-color;
+    user-select: none;
+    cursor: default;
+}
+
+// Full-width, single-line preview of a task's description, shown below the task
+// while the editor is closed (clicking it opens the editor). It is the
+// collapsed state of the description, so the chip and the editor never appear
+// together. The text stays on one line: when it overflows, an ellipsis ("...")
+// appears at the right end and a soft fade (the "inside shadow") dims the right
+// corner to hint there's more to read. The text color (`$text-muted`) is
+// lighter than the task title (`$text-color`) so the description reads as
+// secondary. It has no border — just a quiet tint — and is tucked flush against
+// the task row above.
+.todo-description-chip {
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    // width: 100%;
+    margin:0px 0px 0px 26px;
+    padding: 3px 0px;
+    border: none;
+    border-radius: 0px 0px 5px 5px;
+    background-color: rgba($primary-color, 0.08);
+    color: $text-muted;
+    font-size: 0.78rem;
+    font-family: inherit;
+    line-height: 1.3;
+    text-align: left;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+
+    &__text {
+        flex: 1 1 auto;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding-right: 4px;
+    }
+
+    // Inset shadow at the right corner — a soft fade matching the chip's own
+    // background so the truncated text reads as dissolving into the button.
+    // Rendered only while the text actually overflows.
+    &__fade {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 22px;
+        background: linear-gradient(to right, rgba($primary-color, 0), rgba($primary-color, 0.08));
+        pointer-events: none;
+    }
+
     @media (hover: hover) and (pointer: fine) {
-        &:hover:not(:disabled) {
-            background-color: rgba($primary-color, 0.15);
+        &:hover {
+            background-color: rgba($primary-color, 0.14);
         }
+    }
+
+    &:focus-visible {
+        outline: 3px solid $focus-color;
+        outline-offset: 2px;
     }
 }
 
