@@ -63,11 +63,32 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   }, [focusInputId, item.id, setFocusInputId]);
 
   // Focus the description editor whenever it opens (via "Add Description" or
-  // the description chip) so the user can start typing right away.
+  // the description chip) so the user can start typing right away — but only
+  // on devices with a hardware keyboard. On touch (coarse pointer) devices
+  // auto-focus pops the software keyboard, which is wrong when the user opens
+  // the description just to read/scroll; they tap the textarea to type.
   useEffect(() => {
+    if (window.matchMedia('(pointer: coarse)').matches) return;
     if (descriptionOpen && descriptionRef.current) {
       descriptionRef.current.focus();
     }
+  }, [descriptionOpen]);
+
+  // The blur handler keeps the editor open when the user switches to another
+  // app (see handleDescriptionBlur), so on returning to the app restore focus
+  // to the textarea. The browser usually restores focus itself, but this
+  // guarantees the user can resume typing in the (still open) description.
+  // Skipped on touch devices: returning must not pop the software keyboard
+  // again — the user taps the textarea to resume typing.
+  useEffect(() => {
+    if (window.matchMedia('(pointer: coarse)').matches) return;
+    const handleWindowFocus = () => {
+      if (descriptionOpen && descriptionRef.current && document.activeElement !== descriptionRef.current) {
+        descriptionRef.current.focus();
+      }
+    };
+    window.addEventListener('focus', handleWindowFocus);
+    return () => window.removeEventListener('focus', handleWindowFocus);
   }, [descriptionOpen]);
 
   // The expand button is only useful when the textarea has a scrollbar (text to
@@ -156,6 +177,13 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   };
 
   const handleDescriptionBlur = () => {
+    // The blur event fires both when the user clicks elsewhere in the app
+    // (click-away) and when they switch to another app/window. Only the former
+    // should close the editor: when the window itself loses focus,
+    // document.hasFocus() is false, so keep the editor open so the user can
+    // resume typing where they left off when they return to TextBook.
+    if (!document.hasFocus()) return;
+
     // Collapse back to 100px so the next open always starts collapsed, and
     // close the editor (click-away) matching the title/notes input behavior.
     setDescriptionExpanded(false);
