@@ -20,8 +20,10 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   const chipTextRef = useRef<HTMLSpanElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const copyTimerRef = useRef<number | null>(null);
+  const descriptionCopyTimerRef = useRef<number | null>(null);
   const prevCompletedRef = useRef(item.completed);
   const [copied, setCopied] = useState(false);
+  const [descriptionCopied, setDescriptionCopied] = useState(false);
   const [descriptionOpen, setDescriptionOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionScrollable, setDescriptionScrollable] = useState(false);
@@ -30,6 +32,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   useEffect(() => {
     return () => {
       if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
+      if (descriptionCopyTimerRef.current) window.clearTimeout(descriptionCopyTimerRef.current);
     };
   }, []);
 
@@ -211,16 +214,13 @@ export const TodoItem: React.FC<TodoItemProps> = ({
     onUpdateTodo(item.id, (t) => ({ starred: !t.starred }));
   };
 
-  const handleCopyClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation();
-    setOpenDropdownId(null);
-    const text = getCopyText();
-    if (!text) return;
-
+  // Shared clipboard write used by the task-menu Copy (title) and the
+  // textarea Copy (description) buttons. Falls back to execCommand for
+  // non-secure contexts (e.g. plain http).
+  const copyTextToClipboard = async (text: string): Promise<void> => {
     try {
       await navigator.clipboard.writeText(text);
     } catch {
-      // Fallback for non-secure contexts (e.g. plain http)
       try {
         const textarea = document.createElement('textarea');
         textarea.value = text;
@@ -234,10 +234,34 @@ export const TodoItem: React.FC<TodoItemProps> = ({
         /* ignore clipboard errors */
       }
     }
+  };
+
+  const handleCopyClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    setOpenDropdownId(null);
+    const text = getCopyText();
+    if (!text) return;
+
+    await copyTextToClipboard(text);
 
     setCopied(true);
     if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
     copyTimerRef.current = window.setTimeout(() => setCopied(false), 1500);
+  };
+
+  // Copies the task's description from the open textarea editor. Rendered only
+  // while the editor is open, so the button's pointerdown preventDefault keeps
+  // focus in the textarea and stops the blur handler from closing the editor.
+  const handleDescriptionCopyClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    const text = item.description || '';
+    if (!text) return;
+
+    await copyTextToClipboard(text);
+
+    setDescriptionCopied(true);
+    if (descriptionCopyTimerRef.current) window.clearTimeout(descriptionCopyTimerRef.current);
+    descriptionCopyTimerRef.current = window.setTimeout(() => setDescriptionCopied(false), 1500);
   };
 
   const handleDeleteClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -311,9 +335,14 @@ export const TodoItem: React.FC<TodoItemProps> = ({
               <Icon name="ri-more-2-fill" />
             </button>
             <div className="dropdown-menu todo-menu__dropdown">
-              <button type="button" onClick={handleCopyClick} disabled={!getCopyText()}>
-                {copied ? 'Copied!' : 'Copy'}
-              </button>
+              {/* Copy (title, from the menu) is only offered for tasks without
+                  a description — those with one get a Copy button inside the
+                  description textarea instead, so it isn't duplicated here. */}
+              {!hasDescription && (
+                <button type="button" onClick={handleCopyClick} disabled={!getCopyText()}>
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+              )}
               {!hasDescription && (
                 <button type="button" onClick={handleAddDescriptionClick}>
                   Add Description
@@ -356,20 +385,39 @@ export const TodoItem: React.FC<TodoItemProps> = ({
             onChange={handleDescriptionChange}
             onBlur={handleDescriptionBlur}
           />
-          <button
-            className="icon-btn description-expand-btn"
-            type="button"
-            title={descriptionExpanded ? 'Collapse description' : 'Expand description'}
-            aria-label={descriptionExpanded ? 'Collapse description' : 'Expand description'}
-            // Keep focus on the textarea while the expand button is clicked so
-            // the blur handler doesn't close the editor; the pointerdown
-            // preventDefault mirrors the description chip.
-            onPointerDown={(e) => e.preventDefault()}
-            onClick={handleDescriptionExpandClick}
-            style={{ display: descriptionScrollable ? undefined : 'none' }}
-          >
-            <Icon name={descriptionExpanded ? 'ri-collapse-vertical-line' : 'ri-expand-height-line'} />
-          </button>
+          <div className="todo-description-actions">
+            {/* Copy is only offered for tasks that actually have a description
+                to copy; empty editors get the task-menu Copy (title) instead. */}
+            {hasDescription && (
+              <button
+                className="icon-btn description-copy-btn"
+                type="button"
+                title={descriptionCopied ? 'Copied!' : 'Copy description'}
+                aria-label={descriptionCopied ? 'Copied!' : 'Copy description'}
+                // Keep focus on the textarea while the copy button is clicked so
+                // the blur handler doesn't close the editor; the pointerdown
+                // preventDefault mirrors the description chip.
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={handleDescriptionCopyClick}
+              >
+                <Icon name={descriptionCopied ? 'ri-check-line' : 'ri-file-copy-line'} />
+              </button>
+            )}
+            <button
+              className="icon-btn description-expand-btn"
+              type="button"
+              title={descriptionExpanded ? 'Collapse description' : 'Expand description'}
+              aria-label={descriptionExpanded ? 'Collapse description' : 'Expand description'}
+              // Keep focus on the textarea while the expand button is clicked so
+              // the blur handler doesn't close the editor; the pointerdown
+              // preventDefault mirrors the description chip.
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={handleDescriptionExpandClick}
+              style={{ display: descriptionScrollable ? undefined : 'none' }}
+            >
+              <Icon name={descriptionExpanded ? 'ri-collapse-vertical-line' : 'ri-expand-height-line'} />
+            </button>
+          </div>
         </div>
       )}
     </div>
