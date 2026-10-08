@@ -1,6 +1,9 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Icon } from '../Icon';
 import type { TodoItemProps } from '../types/todoItem.types';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { useDropdownFlip } from '../../hooks';
 
 export const TodoItem: React.FC<TodoItemProps> = ({
   item,
@@ -28,6 +31,13 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionScrollable, setDescriptionScrollable] = useState(false);
   const [descriptionTruncated, setDescriptionTruncated] = useState(false);
+  const previewDialogRef = useRef<HTMLDialogElement | null>(null);
+
+  // Opens the task 3-dot menu upward (instead of downward) when it would
+  // otherwise spill past the bottom of the viewport — see useDropdownFlip.
+  const { ref: dropdownRef, flip: dropdownFlip } = useDropdownFlip(
+    openDropdownId === item.id
+  );
 
   useEffect(() => {
     return () => {
@@ -180,6 +190,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   };
 
   const handleDescriptionBlur = () => {
+    if (previewDialogRef.current?.open) return;
     // The blur event fires both when the user clicks elsewhere in the app
     // (click-away) and when they switch to another app/window. Only the former
     // should close the editor: when the window itself loses focus,
@@ -301,7 +312,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
 
         {hasDescription && (
           <button
-            className="icon-btn description-toggle-btn"
+            className="icon-btn secondary"
             type="button"
             // Keep focus on the textarea while the eye is clicked so the blur
             // handler doesn't close (then reopen) the editor; the toggle below
@@ -324,9 +335,12 @@ export const TodoItem: React.FC<TodoItemProps> = ({
             <Icon name={item.starred ? 'ri-star-fill' : 'ri-star-line'} />
           </button>
 
-          <div className={`dropdown todo-menu ${openDropdownId === item.id ? 'open' : ''}`}>
+          <div
+            ref={dropdownRef}
+            className={`dropdown todo-menu ${openDropdownId === item.id ? 'open' : ''}${openDropdownId === item.id && dropdownFlip ? ' flip-up' : ''}`}
+          >
             <button
-              className="icon-btn todo-menu__toggle"
+              className="icon-btn secondary"
               type="button"
               onClick={handleMoreToggle}
               title="More actions"
@@ -377,6 +391,28 @@ export const TodoItem: React.FC<TodoItemProps> = ({
 
       {descriptionOpen && (
         <div className="todo-description-wrap">
+          <dialog ref={previewDialogRef} className="markdown-preview-dialog">
+            <div className="markdown-preview-header">
+              <span>Preview</span>
+
+              <form method="dialog">
+                <button
+                  type="submit"
+                  className="icon-btn secondary"
+                  title="Close preview"
+                  aria-label="Close preview"
+                >
+                  <Icon name="ri-close-line" />
+                </button>
+              </form>
+            </div>
+
+            <div className="markdown-preview-content">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {item.description || '*Nothing to preview*'}
+              </ReactMarkdown>
+            </div>
+          </dialog>
           <textarea
             ref={descriptionRef}
             className={`todo-description${descriptionExpanded ? ' is-expanded' : ''}`}
@@ -386,11 +422,21 @@ export const TodoItem: React.FC<TodoItemProps> = ({
             onBlur={handleDescriptionBlur}
           />
           <div className="todo-description-actions">
+            <button
+              type="button"
+              className="icon-btn secondary"
+              title="Preview Markdown"
+              aria-label="Preview Markdown"
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={() => previewDialogRef.current?.showModal()}
+            >
+              <Icon name="ri-eye-line" />
+            </button>
             {/* Copy is only offered for tasks that actually have a description
                 to copy; empty editors get the task-menu Copy (title) instead. */}
             {hasDescription && (
               <button
-                className="icon-btn description-copy-btn"
+                className="icon-btn secondary"
                 type="button"
                 title={descriptionCopied ? 'Copied!' : 'Copy description'}
                 aria-label={descriptionCopied ? 'Copied!' : 'Copy description'}
@@ -404,7 +450,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
               </button>
             )}
             <button
-              className="icon-btn description-expand-btn"
+              className="icon-btn secondary"
               type="button"
               title={descriptionExpanded ? 'Collapse description' : 'Expand description'}
               aria-label={descriptionExpanded ? 'Collapse description' : 'Expand description'}

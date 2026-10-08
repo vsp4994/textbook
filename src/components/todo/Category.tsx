@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { type Category as CategoryType, type TodoItemType } from '../../types';
 import { Icon } from '../Icon';
-import { countCategoryItems, hasAnyCompletedItems, uncheckAllItems, sortTodoItems, hasAnyStarredItems } from '../../utils';
+import { Modal } from '../Modal';
+import { useDropdownFlip, useTextPrompt } from '../../hooks';
+import { clampCategoryTitle, countCategoryItems, hasAnyCompletedItems, uncheckAllItems, sortTodoItems, hasAnyStarredItems } from '../../utils';
 
 interface CategoryProps {
   category: CategoryType;
@@ -36,10 +38,31 @@ export const Category: React.FC<CategoryProps> = ({
   const counts = countCategoryItems(category);
   const hasStarred = hasAnyStarredItems(category);
 
+  // Opens the 3-dot settings menu upward (instead of downward) when it would
+  // otherwise spill past the bottom of the viewport — see useDropdownFlip.
+  const { ref: dropdownRef, flip: dropdownFlip } = useDropdownFlip(
+    openDropdownId === category.id
+  );
+
   // Session-only fold state. Clicking a category title opens/closes the
   // category for the current session WITHOUT persisting it; the persisted
   // `collapsed` value only changes through the "Keep open" dropdown option.
   const [uiCollapsed, setUiCollapsed] = useState(category.collapsed);
+
+  // Rename prompt state (replaces native prompt(), which cannot cap length).
+  const [isRenameOpen, setIsRenameOpen] = useState(false);
+
+  // Rename dialog. Reuses the existing <Modal> with a themed text field as its
+  // children; the hook pre-fills the current title and resets on each open.
+  const renamePrompt = useTextPrompt({
+    isOpen: isRenameOpen,
+    initialValue: category.title,
+    placeholder: 'Category title',
+    onConfirm: (value) => {
+      onUpdateCategory(category.id, () => ({ title: clampCategoryTitle(value) }));
+    },
+    onClose: () => setIsRenameOpen(false),
+  });
 
   // Reset the session-only fold state whenever the persisted `collapsed`
   // changes (via "Keep open" or a drive sync) so the UI tracks the saved
@@ -80,11 +103,8 @@ export const Category: React.FC<CategoryProps> = ({
 
   const handleRenameClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
-    const newTitle = prompt('Rename category:', category.title);
-    if (newTitle?.trim()) {
-      onUpdateCategory(category.id, () => ({ title: newTitle.trim() }));
-    }
     setOpenDropdownId(null);
+    setIsRenameOpen(true);
   };
 
   const handleSortCheckedToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -168,7 +188,10 @@ export const Category: React.FC<CategoryProps> = ({
           </button>
         </div>
 
-        <div className={`dropdown ${openDropdownId === category.id ? 'open' : ''}`}>
+        <div
+          ref={dropdownRef}
+          className={`dropdown ${openDropdownId === category.id ? 'open' : ''}${openDropdownId === category.id && dropdownFlip ? ' flip-up' : ''}`}
+        >
           <button className="btn btn-add-task" onClick={handleAddTaskClick} type='button'>
             <Icon name="ri-add-circle-fill" className="icon-primary" />
           </button>
@@ -237,6 +260,19 @@ export const Category: React.FC<CategoryProps> = ({
           </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={isRenameOpen}
+        onClose={() => setIsRenameOpen(false)}
+        title="Rename Category"
+        message=""
+        type="info"
+        confirmLabel="Save"
+        onConfirm={renamePrompt.onPrimary}
+        confirmDisabled={!renamePrompt.canConfirm}
+      >
+        {renamePrompt.renderField()}
+      </Modal>
     </div>
   );
 };

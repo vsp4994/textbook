@@ -1,5 +1,35 @@
 import type { Category, TodoItemType } from '../types';
 
+export const MAX_CATEGORY_TITLE_LENGTH = 20;
+
+/**
+ * Trims and clamps a raw category-title input (from the user) to the allowed
+ * maximum length. Array.from(...) counts Unicode code points so multi-byte
+ * characters (e.g. emoji) are never split in half at the boundary.
+ */
+export const clampCategoryTitle = (raw: string): string => {
+  const trimmed = raw.trim();
+  const chars = Array.from(trimmed);
+  return chars.length > MAX_CATEGORY_TITLE_LENGTH
+    ? chars.slice(0, MAX_CATEGORY_TITLE_LENGTH).join('')
+    : trimmed;
+};
+
+export const MAX_LIST_TITLE_LENGTH = 20;
+
+/**
+ * Trims and clamps a raw list-title input (from the user) to the allowed
+ * maximum length, using the same Unicode-safe treatment as clampCategoryTitle.
+ * List names appear in the narrow tab bar, so the cap keeps them tidy.
+ */
+export const clampListTitle = (raw: string): string => {
+  const trimmed = raw.trim();
+  const chars = Array.from(trimmed);
+  return chars.length > MAX_LIST_TITLE_LENGTH
+    ? chars.slice(0, MAX_LIST_TITLE_LENGTH).join('')
+    : trimmed;
+};
+
 export const updateCategoriesRecursive = (
   categories: Category[],
   categoryId: string,

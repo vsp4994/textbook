@@ -94,7 +94,7 @@ body {
     overflow-x: clip; // Prevent horizontal overflow
 
     @media (max-width: 768px) {
-        padding: 12px;
+        // padding: 12px;
         gap: 12px;
     }
 
@@ -117,6 +117,9 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
 
     @media (max-width: 600px) {
         padding: 4px;
@@ -124,9 +127,7 @@ body {
         // Pin the footer to the bottom of the viewport on mobile only. `sticky`
         // keeps it in normal document flow so nothing overlaps or changes; the
         // top shadow gives it a floating look above the scrolling content.
-        position: sticky;
-        bottom: 0;
-        z-index: 20;
+
         box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.35);
     }
 }
@@ -273,7 +274,7 @@ body {
     cursor: pointer;
     white-space: nowrap;
     transition: all $transition-speed ease;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     color: $text-muted;
     user-select: none;
     flex-shrink: 0;
@@ -300,7 +301,7 @@ body {
 
 // Main App Area and Layouts
 .app-body {
-    min-height: 400px;
+    min-height: 50vh;
 
     @media (max-width: 600px) {
         // Absorb leftover viewport height so the mobile footer is pushed down
@@ -350,8 +351,8 @@ body {
         padding-bottom: 8px;
 
         >.category-card {
-            flex: 0 0 300px;
-            min-width: 300px;
+            flex: 0 0 400px;
+            min-width: 400px;
         }
     }
 }
@@ -372,16 +373,16 @@ body {
     // easy to distinguish from top-level (depth-1) cards.
     &.depth-2 {
         border-left: 3px solid #9d52a7;
-        border-top: 0.5px solid #9d52a7;
-        border-right: 0.5px solid #9d52a7;
-        border-bottom: 0.5px solid #9d52a7;
+        // border-top: 0.5px solid #9d52a7;
+        // border-right: 0.5px solid #9d52a7;
+        // border-bottom: 0.5px solid #9d52a7;
     }
 
     &.depth-3 {
         border-left: 3px solid #16a34a;
-        border-top: 0.5px solid #16a34a;
-        border-bottom: 0.5px solid #16a34a;
-        border-right: 0.5px solid #16a34a;
+        // border-top: 0.5px solid #16a34a;
+        // border-bottom: 0.5px solid #16a34a;
+        // border-right: 0.5px solid #16a34a;
     }
 }
 
@@ -488,6 +489,7 @@ body {
     }
 
     .category-title {
+        font-size: 0.9rem;
         font-weight: 600;
         user-select: none;
         color: $text-color;
@@ -661,7 +663,7 @@ body {
     border-bottom: 1px dashed transparent;
     background-color: transparent;
     padding: 4px;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     color: $text-color;
 
     @media (max-width: 600px) {
@@ -697,7 +699,7 @@ body {
     min-height: 100px;
     margin-top: 2px;
     padding: 8px;
-    border: none;
+    border: 1px solid $bg-color;
     border-top: none;
     border-radius: 0;
     background-color: $bg-color;
@@ -710,8 +712,8 @@ body {
     }
 
     &:focus {
-        outline: none;
-        border-color: none;
+        outline: $border-color;
+        border-color: $primary-color;
     }
 
     @media (max-width: 600px) {
@@ -742,14 +744,6 @@ body {
     }
 }
 
-.description-expand-btn,
-.description-copy-btn {
-    display: flex;
-    background-color: $card-bg !important;
-    border: 1px solid $border-color !important;
-    border-radius: 4px;
-}
-
 // Task "more" (3-dot) menu that replaced the old copy/delete icon buttons.
 // It reuses the shared `.dropdown` behavior so the app-level click-outside
 // handler closes it, and keeps its own menu a bit more compact than the
@@ -762,6 +756,7 @@ body {
 
 .description-toggle-btn {
     color: $primary-color !important;
+
     @media (hover: hover) and (pointer: fine) {
         &:hover:not(:disabled) {
             background-color: rgba($primary-color, 0.15);
@@ -853,13 +848,24 @@ body {
     &.open .dropdown-menu {
         display: block;
     }
+
+    // Open upward (above the trigger) instead of downward when the menu would
+    // otherwise spill past the bottom of the viewport. The `flip-up` flag is
+    // computed by the useDropdownFlip hook while the menu is open; it reverses
+    // the vertical anchoring so the menu grows up from the trigger. This keeps
+    // menus from bottom-of-screen triggers reachable (e.g. inside the desktop
+    // kanban board, which clips overflow vertically).
+    &.flip-up .dropdown-menu {
+        top: auto;
+        bottom: calc(100% + 4px);
+    }
 }
 
 .dropdown-menu {
     display: none;
     position: absolute;
     right: 0;
-    top: 100%;
+    top: calc(100% + 4px);
     background-color: $card-bg;
     border: 1px solid $border-color;
     border-radius: $border-radius;
@@ -911,10 +917,9 @@ body {
     }
 }
 
-// Icon button base + variants (danger/primary)
 .icon-btn {
-    background: none;
-    border: none;
+    background-color: $card-bg;
+    border: 1px solid $border-color;
     color: $text-muted;
     user-select: none;
     padding: 8px;
@@ -931,20 +936,29 @@ body {
     }
 
     // Danger variant (e.g. delete) — same element, combined class
-    &.delete-icon-btn {
+    &.danger {
         @media (hover: hover) and (pointer: fine) {
             &:hover:not(:disabled) {
-                background-color: rgba($danger-color, 0.15);
+                border-color: $danger-color;
                 color: $danger-color;
             }
         }
     }
 
     // Primary variant — same element, combined class
-    &.primary-icon-btn {
+    &.primary {
         @media (hover: hover) and (pointer: fine) {
             &:hover:not(:disabled) {
-                background-color: rgba($primary-color, 0.15);
+                border-color: $primary-color;
+                color: $primary-color;
+            }
+        }
+    }
+
+    &.secondary {
+        @media (hover: hover) and (pointer: fine) {
+            &:hover:not(:disabled) {
+                border-color: $primary-color;
                 color: $primary-color;
             }
         }
@@ -963,7 +977,7 @@ body {
         // after tapping somewhere else on the screen.
         @media (hover: hover) and (pointer: fine) {
             &:hover:not(:disabled) {
-                background-color: rgba($primary-color, 0.15);
+                border-color: $primary-color;
                 color: $primary-color;
             }
         }
@@ -1273,6 +1287,56 @@ body {
     }
 }
 
+
+// Modal text input, used by the category-title prompt. A real <input> with
+// maxLength (the browser stops typing AND pasting at the limit) plus a live
+// counter and an explicit hint make the character cap obvious up front, which
+// the native prompt() dialog cannot do.
+.modal-text-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    .modal-text-input {
+        width: 100%;
+        padding: 10px 60px 10px 12px;
+        background-color: $bg-color;
+        border: 1px solid $border-color;
+        border-radius: $border-radius;
+        color: $text-color;
+        font-size: 0.95rem;
+
+        &::placeholder {
+            color: $text-muted;
+        }
+
+        &:focus {
+            outline: none;
+            border-color: $primary-color;
+        }
+    }
+
+    .modal-text-input-counter {
+        position: absolute;
+        right: 12px;
+        font-size: 0.75rem;
+        color: $text-muted;
+        pointer-events: none;
+        user-select: none;
+    }
+}
+
+.modal-text-input-hint {
+    margin: 0;
+    font-size: 0.75rem;
+    color: $text-muted;
+}
+
+.modal-content .modal-actions button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .empty-state {
     text-align: center;
     padding: 20px;
@@ -1460,5 +1524,50 @@ body {
     .json-null {
         color: $text-muted;
         font-style: italic;
+    }
+}
+
+.markdown-preview-dialog {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    padding: 0;
+    text-align: left;
+    width: min(680px, 100vw);
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid $border-color;
+    border-radius: 10px;
+    background: $card-bg;
+    color: $text-color;
+
+    &::backdrop {
+        background: rgba(0, 0, 0, 0.5);
+    }
+}
+
+.markdown-preview-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: $card-bg;
+    border-bottom: 1px solid $border-color;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.markdown-preview-content {
+    padding: 16px;
+    overflow-wrap: anywhere;
+
+    pre,
+    table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
     }
 }

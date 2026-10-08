@@ -1,13 +1,17 @@
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Icon, Modal, ReorderList, Category as CategoryComponent, TodoItem } from './components';
 import { useDocument, type UseDocumentReturn } from './hooks/useDocument';
+import { useTextPrompt } from './hooks';
 import { DriveSyncProvider } from './sync/DriveSyncContext';
 import { MAX_DEPTH, type Category, type TodoItemType, type TodoList } from './types';
 import type { ModalConfig } from './components/types/todoItem.types';
 import {
+  clampCategoryTitle,
+  clampListTitle,
   deleteCategoryRecursive,
   deleteCheckedTodoItems,
   deleteTodoItem,
+  MAX_LIST_TITLE_LENGTH,
   updateCategoriesRecursive,
   updateTodoItems,
 } from './utils/categoryUtils';
@@ -40,6 +44,20 @@ const AppContent = ({ document }: AppContentProps) => {
   const [tabMenuOpen, setTabMenuOpen] = useState(false);
   const [tabMenuPos, setTabMenuPos] = useState({ top: 0, left: 0 });
   const tabOptionsRef = useRef<HTMLButtonElement>(null);
+  const tabMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // Pending category-title prompt (replacement for the native prompt()).
+  type CategoryPromptState =
+    | { kind: 'root' }
+    | { kind: 'subcategory'; parentCategory: Category };
+  const [categoryPrompt, setCategoryPrompt] = useState<CategoryPromptState | null>(null);
+
+  // Pending list-title prompt (Add List / Rename List), same themed-modal
+  // pattern as the category prompt so native prompt() is gone entirely.
+  type ListPromptState =
+    | { kind: 'add' }
+    | { kind: 'rename'; list: TodoList };
+  const [listPrompt, setListPrompt] = useState<ListPromptState | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -81,13 +99,15 @@ const AppContent = ({ document }: AppContentProps) => {
 
   const handleAddList = () => {
     if (!doc) return;
+    setListPrompt({ kind: 'add' });
+  };
 
-    const listTitle = prompt('Enter name of new list:');
-    if (!listTitle?.trim()) return;
+  const confirmAddList = (rawTitle: string) => {
+    if (!doc) return;
 
     const newList: TodoList = {
       id: generateUUID(),
-      title: listTitle.trim(),
+      title: clampListTitle(rawTitle),
       categories: [],
     };
 
@@ -134,26 +154,27 @@ const AppContent = ({ document }: AppContentProps) => {
     const target = doc.lists.find((list) => list.id === listId);
     if (!target) return;
 
-    const newTitle = prompt('Rename list:', target.title);
-    if (!newTitle?.trim()) return;
+    // Close the tab-options-menu so it doesn't linger behind the modal.
+    setTabMenuOpen(false);
+    setListPrompt({ kind: 'rename', list: target });
+  };
 
+  const confirmRenameList = (listId: string, rawTitle: string) => {
+    if (!doc) return;
     updateDocument({
       ...doc,
       lists: doc.lists.map((list) =>
-        list.id === listId ? { ...list, title: newTitle.trim() } : list
+        list.id === listId ? { ...list, title: clampListTitle(rawTitle) } : list
       ),
     });
   };
 
-  const handleAddRootCategory = () => {
+  const confirmAddRootCategory = (rawTitle: string) => {
     if (!doc) return;
-
-    const categoryTitle = prompt('Enter category title:');
-    if (!categoryTitle?.trim()) return;
 
     const newCategory: Category = {
       id: generateUUID(),
-      title: categoryTitle.trim(),
+      title: clampCategoryTitle(rawTitle),
       collapsed: true,
       showCheckboxes: true,
       sortCheckedToBottom: false,
@@ -172,6 +193,11 @@ const AppContent = ({ document }: AppContentProps) => {
     });
   };
 
+  const handleAddRootCategory = () => {
+    if (!doc) return;
+    setCategoryPrompt({ kind: 'root' });
+  };
+
   const handleUpdateCategory = (
     categoryId: string,
     mutation: (category: Category) => Partial<Category>
@@ -183,9 +209,9 @@ const AppContent = ({ document }: AppContentProps) => {
       lists: doc.lists.map((list) =>
         list.id === activeListId
           ? {
-              ...list,
-              categories: updateCategoriesRecursive(list.categories, categoryId, mutation),
-            }
+            ...list,
+            categories: updateCategoriesRecursive(list.categories, categoryId, mutation),
+          }
           : list
       ),
     });
@@ -206,9 +232,9 @@ const AppContent = ({ document }: AppContentProps) => {
           lists: doc.lists.map((list) =>
             list.id === activeListId
               ? {
-                  ...list,
-                  categories: deleteCategoryRecursive(list.categories, categoryId),
-                }
+                ...list,
+                categories: deleteCategoryRecursive(list.categories, categoryId),
+              }
               : list
           ),
         });
@@ -233,9 +259,9 @@ const AppContent = ({ document }: AppContentProps) => {
           lists: doc.lists.map((list) =>
             list.id === activeListId
               ? {
-                  ...list,
-                  categories: deleteCheckedTodoItems(list.categories, categoryId),
-                }
+                ...list,
+                categories: deleteCheckedTodoItems(list.categories, categoryId),
+              }
               : list
           ),
         });
@@ -245,29 +271,32 @@ const AppContent = ({ document }: AppContentProps) => {
     });
   };
 
+  const confirmAddSubcategory = (parent: Category, rawTitle: string) => {
+    if (!doc) return;
+
+    const newSubcategory: Category = {
+      id: generateUUID(),
+      title: clampCategoryTitle(rawTitle),
+      collapsed: true,
+      showCheckboxes: parent.showCheckboxes,
+      sortCheckedToBottom: parent.sortCheckedToBottom,
+      items: [],
+      subcategories: [],
+      depth: parent.depth + 1,
+    };
+
+    handleUpdateCategory(parent.id, (category) => ({
+      subcategories: [...category.subcategories, newSubcategory],
+    }));
+  };
+
   const handleAddSubcategory = (parentCategory: Category) => {
     if (parentCategory.depth >= MAX_DEPTH) {
       alert(`Nesting limit reached! Maximum nesting level is ${MAX_DEPTH}.`);
       return;
     }
 
-    const title = prompt('Enter subcategory title:');
-    if (!title?.trim()) return;
-
-    const newSubcategory: Category = {
-      id: generateUUID(),
-      title: title.trim(),
-      collapsed: true,
-      showCheckboxes: parentCategory.showCheckboxes,
-      sortCheckedToBottom: parentCategory.sortCheckedToBottom,
-      items: [],
-      subcategories: [],
-      depth: parentCategory.depth + 1,
-    };
-
-    handleUpdateCategory(parentCategory.id, (category) => ({
-      subcategories: [...category.subcategories, newSubcategory],
-    }));
+    setCategoryPrompt({ kind: 'subcategory', parentCategory });
   };
 
   const handleUpdateTodo = (
@@ -281,9 +310,9 @@ const AppContent = ({ document }: AppContentProps) => {
       lists: doc.lists.map((list) =>
         list.id === activeListId
           ? {
-              ...list,
-              categories: updateTodoItems(list.categories, todoId, mutation),
-            }
+            ...list,
+            categories: updateTodoItems(list.categories, todoId, mutation),
+          }
           : list
       ),
     });
@@ -297,9 +326,9 @@ const AppContent = ({ document }: AppContentProps) => {
       lists: doc.lists.map((list) =>
         list.id === activeListId
           ? {
-              ...list,
-              categories: deleteTodoItem(list.categories, todoId),
-            }
+            ...list,
+            categories: deleteTodoItem(list.categories, todoId),
+          }
           : list
       ),
     });
@@ -364,15 +393,6 @@ const AppContent = ({ document }: AppContentProps) => {
   );
 
   const toggleTabMenu = () => {
-    if (!tabMenuOpen && tabOptionsRef.current) {
-      const rect = tabOptionsRef.current.getBoundingClientRect();
-      const menuWidth = 260;
-      const left = Math.max(
-        8,
-        Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8)
-      );
-      setTabMenuPos({ top: rect.bottom + 4, left });
-    }
     setTabMenuOpen((open) => !open);
   };
 
@@ -395,6 +415,79 @@ const AppContent = ({ document }: AppContentProps) => {
   const handleModalClose = () => {
     setModalConfig((currentConfig) => ({ ...currentConfig, isOpen: false }));
   };
+
+  // Prompt for creating a new category/subcategory title. Reuses the existing
+  // <Modal> with a themed text field as its children (no separate modal
+  // component); the shared hook owns the field state, counter, and hints.
+  // Must live before the `if (isLoading)` early return (hooks order).
+  const categoryTitlePrompt = useTextPrompt({
+    isOpen: categoryPrompt !== null,
+    placeholder:
+      categoryPrompt?.kind === 'subcategory' ? 'Subcategory title' : 'Category title',
+    onConfirm: (value) => {
+      if (categoryPrompt?.kind === 'subcategory') {
+        confirmAddSubcategory(categoryPrompt.parentCategory, value);
+      } else {
+        confirmAddRootCategory(value);
+      }
+    },
+    onClose: () => setCategoryPrompt(null),
+  });
+
+  // List-title prompt (Add List / Rename List), sharing the same hook + Modal.
+  const listTitlePrompt = useTextPrompt({
+    isOpen: listPrompt !== null,
+    initialValue: listPrompt?.kind === 'rename' ? listPrompt.list.title : '',
+    placeholder: 'List title',
+    maxLength: MAX_LIST_TITLE_LENGTH,
+    onConfirm: (value) => {
+      if (listPrompt?.kind === 'rename') {
+        confirmRenameList(listPrompt.list.id, value);
+      } else {
+        confirmAddList(value);
+      }
+    },
+    onClose: () => setListPrompt(null),
+  });
+
+  // Position the tab-options reorder menu. Opens below the options button and
+  // flips above it when the menu wouldn't fit below the viewport's bottom edge
+  // (the same flip behavior as the task/category 3-dot menus, implemented per
+  // menu in useDropdownFlip). The menu's real height is only known while it is
+  // rendered, so it is positioned in a layout effect whenever it opens, and
+  // re-positioned on scroll/resize while it stays open.
+  useLayoutEffect(() => {
+    if (!tabMenuOpen) return;
+    const button = tabOptionsRef.current;
+    const menu = tabMenuRef.current;
+    if (!button || !menu) return;
+
+    const position = () => {
+      const buttonRect = button.getBoundingClientRect();
+      const menuWidth = 260;
+      const menuHeight = menu.offsetHeight;
+      const gap = 4;
+      const left = Math.max(
+        8,
+        Math.min(buttonRect.right - menuWidth, window.innerWidth - menuWidth - 8)
+      );
+      const fitsBelow =
+        buttonRect.bottom + gap + menuHeight <= window.innerHeight - 8;
+      const top = fitsBelow
+        ? buttonRect.bottom + gap
+        : Math.max(8, buttonRect.top - menuHeight - gap);
+      setTabMenuPos({ top, left });
+    };
+
+    position();
+    window.addEventListener('resize', position);
+    window.addEventListener('scroll', position, true);
+    return () => {
+      window.removeEventListener('resize', position);
+      window.removeEventListener('scroll', position, true);
+    };
+  }, [tabMenuOpen]);
+
 
   if (isLoading) {
     return (
@@ -439,6 +532,7 @@ const AppContent = ({ document }: AppContentProps) => {
 
           {tabMenuOpen && doc && (
             <div
+              ref={tabMenuRef}
               className="tab-options-menu"
               style={{ top: tabMenuPos.top, left: tabMenuPos.left }}
             >
@@ -465,7 +559,7 @@ const AppContent = ({ document }: AppContentProps) => {
                         <Icon name="ri-check-line" className="tab-options-active" />
                       )}
                       <button
-                        className="icon-btn primary-icon-btn"
+                        className="icon-btn primary"
                         onClick={() => handleEditList(list.id)}
                         onPointerDown={(e) => e.stopPropagation()}
                         type="button"
@@ -474,7 +568,7 @@ const AppContent = ({ document }: AppContentProps) => {
                         <Icon name="ri-pencil-line" />
                       </button>
                       <button
-                        className="icon-btn delete-icon-btn"
+                        className="icon-btn danger"
                         onClick={() => handleDeleteList(list.id)}
                         onPointerDown={(e) => e.stopPropagation()}
                         type="button"
@@ -538,6 +632,32 @@ const AppContent = ({ document }: AppContentProps) => {
         confirmLabel={modalConfig.confirmLabel}
         cancelLabel={modalConfig.cancelLabel}
       />
+
+      <Modal
+        isOpen={categoryPrompt !== null}
+        onClose={() => setCategoryPrompt(null)}
+        title={categoryPrompt?.kind === 'subcategory' ? 'Add Subcategory' : 'Add Category'}
+        message=""
+        type="info"
+        confirmLabel="Save"
+        onConfirm={categoryTitlePrompt.onPrimary}
+        confirmDisabled={!categoryTitlePrompt.canConfirm}
+      >
+        {categoryTitlePrompt.renderField()}
+      </Modal>
+
+      <Modal
+        isOpen={listPrompt !== null}
+        onClose={() => setListPrompt(null)}
+        title={listPrompt?.kind === 'rename' ? 'Rename List' : 'Add List'}
+        message=""
+        type="info"
+        confirmLabel="Save"
+        onConfirm={listTitlePrompt.onPrimary}
+        confirmDisabled={!listTitlePrompt.canConfirm}
+      >
+        {listTitlePrompt.renderField()}
+      </Modal>
     </div>
   );
 };

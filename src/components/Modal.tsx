@@ -9,6 +9,10 @@ export interface ModalProps {
   cancelLabel?: string;
   onConfirm: () => void;
   type?: 'danger' | 'warning' | 'info';
+  /** Optional custom content rendered in place of the default message paragraph. */
+  children?: React.ReactNode;
+  /** When true, disables the confirm button (e.g. an empty required input). */
+  confirmDisabled?: boolean;
 }
 
 /**
@@ -33,6 +37,8 @@ export const Modal: React.FC<ModalProps> = ({
   cancelLabel = 'Cancel',
   onConfirm,
   type = 'info',
+  children,
+  confirmDisabled = false,
 }) => {
   if (!isOpen) return null;
 
@@ -51,12 +57,16 @@ export const Modal: React.FC<ModalProps> = ({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <h3>{title}</h3>
-        <p>{message}</p>
+        {children ?? <p>{message}</p>}
         <div className="modal-actions">
-          <button className={getButtonClass()} onClick={() => {
-            onConfirm();
-            onClose();
-          }}>
+          <button
+            className={getButtonClass()}
+            disabled={confirmDisabled}
+            onClick={() => {
+              onConfirm();
+              onClose();
+            }}
+          >
             {confirmLabel}
           </button>
           <button className="btn btn-secondary" onClick={onClose}>
