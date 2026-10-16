@@ -1,13 +1,14 @@
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Icon, Modal, ReorderList, Category as CategoryComponent, TodoItem } from './components';
+import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Category as CategoryComponent, EmptyState, Icon, Modal, ReorderList, StarredList, Toast, TodoItem, type ToastSeverity } from './components';
 import { useDocument, type UseDocumentReturn } from './hooks/useDocument';
 import { useTextPrompt } from './hooks';
 import { DriveSyncProvider } from './sync/DriveSyncContext';
-import { MAX_DEPTH, type Category, type TodoItemType, type TodoList } from './types';
+import { MAX_DEPTH, STARRED_LIST_ID, type Category, type TodoItemType, type TodoList } from './types';
 import type { ModalConfig } from './components/types/todoItem.types';
 import {
   clampCategoryTitle,
   clampListTitle,
+  collectStarredItems,
   deleteCategoryRecursive,
   deleteCheckedTodoItems,
   deleteTodoItem,
@@ -17,6 +18,33 @@ import {
 } from './utils/categoryUtils';
 import { generateUUID } from './utils/uuid';
 import { SyncPanel } from './components/SyncPanel';
+
+interface ToastState {
+  severity: ToastSeverity;
+  message: string;
+  /** Changes on every show so the Toast remounts (resetting its dismiss timer). */
+  id: number;
+}
+
+// Locates a todo by its globally-unique id across every list — the Starred view
+// spans all lists, so a task can live in any of them. Returns the live object
+// reference (no mutation) so callers can inspect the pre-mutation state.
+const findTodoAcrossLists = (lists: TodoList[], todoId: string): TodoItemType | null => {
+  for (const list of lists) {
+    const walk = (categories: Category[]): TodoItemType | null => {
+      for (const category of categories) {
+        const found = category.items.find((item) => item.id === todoId);
+        if (found) return found;
+        const nested = walk(category.subcategories);
+        if (nested) return nested;
+      }
+      return null;
+    };
+    const found = walk(list.categories);
+    if (found) return found;
+  }
+  return null;
+};
 
 interface AppContentProps {
   document: UseDocumentReturn;
@@ -45,6 +73,18 @@ const AppContent = ({ document }: AppContentProps) => {
   const [tabMenuPos, setTabMenuPos] = useState({ top: 0, left: 0 });
   const tabOptionsRef = useRef<HTMLButtonElement>(null);
   const tabMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // Floating toast (success/error/info) shown transiently at the bottom of the
+  // view — e.g. the "Task completed" confirmation when a task is checked from
+  // the Starred view. The Toast component owns its dismiss timer; App only
+  // decides when to show one.
+  const [toast, setToast] = useState<ToastState | null>(null);
+
+  const showToast = useCallback((severity: ToastSeverity, message: string) => {
+    setToast({ severity, message, id: Date.now() });
+  }, []);
+
+  const hideToast = useCallback(() => setToast(null), []);
 
   // Pending category-title prompt (replacement for the native prompt()).
   type CategoryPromptState =
@@ -96,6 +136,26 @@ const AppContent = ({ document }: AppContentProps) => {
 
   const getActiveList = (): TodoList | undefined =>
     doc?.lists.find((list) => list.id === activeListId);
+
+  // The Starred view is a synthetic "list" (no TodoList row owns this id), so it
+  // is never persisted as a real active list — switching to it is purely
+  // in-memory navigation. While in this view the item/category mutation handlers
+  // below must target the todo's actual list instead of a single idle
+  // `activeListId` that no list matches. Because todo/category ids are
+  // globally-unique UUIDs, running an updater across every list only ever
+  // mutates the one matching entry; every other list is an untouched no-op.
+  const starredView = activeListId === STARRED_LIST_ID;
+  const inActiveList = starredView ? () => true : (listId: string) => listId === activeListId;
+
+  // All starred todos across every list, recomputed whenever the document
+  // changes (updates are immutable, so any mutation replaces `doc`).
+  const starredEntries = useMemo(() => (doc ? collectStarredItems(doc.lists) : []), [doc]);
+
+  const handleStarredClick = () => {
+    setOpenDropdownId(null);
+    setTabMenuOpen(false);
+    setActiveListId(STARRED_LIST_ID);
+  };
 
   const handleAddList = () => {
     if (!doc) return;
@@ -207,7 +267,7 @@ const AppContent = ({ document }: AppContentProps) => {
     updateDocument({
       ...doc,
       lists: doc.lists.map((list) =>
-        list.id === activeListId
+        inActiveList(list.id)
           ? {
             ...list,
             categories: updateCategoriesRecursive(list.categories, categoryId, mutation),
@@ -305,10 +365,22 @@ const AppContent = ({ document }: AppContentProps) => {
   ) => {
     if (!doc) return;
 
+    // Checking a task while in the Starred view must not leave the view. It just
+    // confirms the completion with a floating toast; the now-completed item drops
+    // out of the starred list on the next render (collectStarredItems excludes
+    // completed todos). Detect the unchecked → checked transition by applying the
+    // mutation to the live todo and comparing its completed flag.
+    if (starredView) {
+      const target = findTodoAcrossLists(doc.lists, todoId);
+      if (target && mutation(target).completed === true && !target.completed) {
+        showToast('success', 'Task completed');
+      }
+    }
+
     updateDocument({
       ...doc,
       lists: doc.lists.map((list) =>
-        list.id === activeListId
+        inActiveList(list.id)
           ? {
             ...list,
             categories: updateTodoItems(list.categories, todoId, mutation),
@@ -324,7 +396,7 @@ const AppContent = ({ document }: AppContentProps) => {
     updateDocument({
       ...doc,
       lists: doc.lists.map((list) =>
-        list.id === activeListId
+        inActiveList(list.id)
           ? {
             ...list,
             categories: deleteTodoItem(list.categories, todoId),
@@ -502,6 +574,19 @@ const AppContent = ({ document }: AppContentProps) => {
   return (
     <div className="app-container">
       <nav className="tab-navigation">
+        <button
+          className={`tab-item starred-tab ${starredView ? 'active' : ''}`}
+          onClick={handleStarredClick}
+          type="button"
+          title={`Starred (${starredEntries.length})`}
+        >
+          <Icon name={starredView ? 'ri-star-fill' : 'ri-star-line'} className="starred-tab-icon" />
+          <span className="starred-tab-label">Starred</span>
+          <span className="starred-tab-label-count">
+            {starredEntries.length}
+          </span>
+        </button>
+
         <div className="tab-list">
           {doc?.lists.map((list) => (
             <button
@@ -589,7 +674,15 @@ const AppContent = ({ document }: AppContentProps) => {
       </nav>
 
       <main className="app-body">
-        {activeList ? (
+        {starredView ? (
+          <div className="starred-wrapper">
+            <StarredList
+              entries={starredEntries}
+              onOpenList={handleTabClick}
+              renderTodoItem={renderTodoItem}
+            />
+          </div>
+        ) : activeList ? (
           <div className="list-wrapper">
             <div className="list-header-row">
               <button className="btn btn-outline" onClick={handleAddRootCategory} type="button">
@@ -606,21 +699,26 @@ const AppContent = ({ document }: AppContentProps) => {
             )}
           </div>
         ) : (
-          <div className="empty-state empty-state-hero">
-            <div className="empty-state-icon">
-              <Icon name="ri-book-open-line" />
-            </div>
-            <h2 className="empty-state-title">Every story starts with a blank page.</h2>
-            <p className="empty-state-subtitle">
-              Create your first list and give your notes, plans, and ideas a home.
-            </p>
-          </div>
+          <EmptyState
+            icon="ri-book-open-line"
+            title="Every story starts with a blank page."
+            subtitle="Create your first list and give your notes, plans, and ideas a home."
+          />
         )}
       </main>
 
       <footer className="app-footer">
         <SyncPanel document={doc} isDbAvailable={isDbAvailable} />
       </footer>
+
+      {toast && (
+        <Toast
+          key={toast.id}
+          severity={toast.severity}
+          message={toast.message}
+          onClose={hideToast}
+        />
+      )}
 
       <Modal
         isOpen={modalConfig.isOpen}

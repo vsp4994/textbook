@@ -299,6 +299,44 @@ body {
     }
 }
 
+// Pinned "Starred" tab. Sits OUTSIDE (to the left of) the scrollable .tab-list,
+// so it never scrolls away and is always visible. Inherits .tab-item's look but
+// is styled as a permanent fixture of the nav.
+.tab-item.starred-tab {
+    // Keeps the tab from being squeezed when many list tabs are open.
+    flex-shrink: 0;
+
+    .starred-tab-icon {
+        color: $primary-color;
+        font-size: 1rem;
+    }
+
+    &.active {
+        color: $primary-color;
+
+        .starred-tab-icon {
+            color: $primary-color;
+        }
+    }
+
+    .starred-tab-label-count {
+        background-color: rgba($text-muted, 0.15);
+        border-radius: 999px;
+        padding: 2px 8px;
+    }
+
+    // On small screens there is no room for a label beside the other tabs, so
+    // show the star icon only (the button still has a title/tooltip).
+    @media (max-width: 600px) {
+        padding: 6px 8px;
+
+        .starred-tab-label {
+            display: none;
+        }
+    }
+}
+
+
 // Main App Area and Layouts
 .app-body {
     min-height: 50vh;
@@ -323,6 +361,214 @@ body {
     justify-content: flex-end;
     align-items: center;
 }
+
+// Starred view — the pinned tab renders a virtual "list" of every todo starred
+// across all lists, grouped by its source list.
+.starred-wrapper {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 6px;
+}
+
+.starred-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .starred-groups {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .starred-group-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 8px 4px;
+        background-color: transparent;
+        border: none;
+        border-bottom: 1px solid $border-color;
+        cursor: pointer;
+        color: $text-muted;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        text-align: left;
+        transition: color $transition-speed ease;
+
+        @media (max-width: 600px) {
+            color: $primary-color;
+        }
+
+        &:hover {
+            color: $primary-color;
+
+            .starred-group-icon {
+                color: $primary-color;
+            }
+        }
+
+        .starred-group-icon {
+            color: $text-muted;
+            transition: color $transition-speed ease;
+
+            @media (max-width: 600px) {
+                color: $primary-color;
+            }
+        }
+
+        .starred-group-title {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .starred-group-count {
+            background-color: rgba($text-muted, 0.15);
+            border-radius: 999px;
+            padding: 2px 8px;
+        }
+    }
+
+    .starred-group-boxes {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    // One bordered "card" per owning category. The category breadcrumb
+    // (.starred-item-context) is its heading at the top-left instead of being
+    // repeated under every task inside.
+    .starred-context-box {
+        border: 1px solid $border-color;
+        border-radius: 10px;
+        // No `overflow: hidden` here: the task-options `.dropdown-menu` is
+        // absolutely positioned and must be allowed to float out of the box,
+        // otherwise it is clipped and appears cut off inside the card. Same
+        // approach as .category-card's `overflow: visible`. The rounded top
+        // corners are preserved by rounding the header strip below instead.
+        overflow: visible;
+        background-color: rgba($card-bg, 0.35);
+
+        .starred-item-context {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: $text-muted;
+            background-color: rgba($primary-color, 0.07);
+            // Round only the two top corners to match the box's 10px radius
+            // minus its 1px border, so the header background nestles inside
+            // the rounded card without clipping the dropdown (a.k.a. the
+            // .category-header approach: round, don't clip).
+            border-radius: 9px 9px 0 0;
+            border-bottom: 1px solid $border-color;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+
+            .ri {
+                font-size: 0.95rem;
+                color: $primary-color;
+                flex-shrink: 0;
+            }
+        }
+
+        .starred-context-items {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 8px;
+        }
+    }
+
+    .starred-item {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+}
+
+
+// Floating toast notification, shown at the bottom of the viewport — e.g. the
+// "Task completed" confirmation when a todo is checked from the Starred view.
+// The parent only supplies the severity; the matching icon and colour are
+// decided here inside the component.
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-50%);
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: calc(100vw - 40px);
+    padding: 12px 18px;
+    border-radius: 10px;
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    animation: toast-in 0.25s ease-out;
+
+    .toast-icon {
+        display: inline-flex;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+
+    .toast-message {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    // Success: green background + white text with a check icon.
+    &.toast--success {
+        background-color: #16a34a;
+    }
+
+    &.toast--error {
+        background-color: $danger-color;
+    }
+
+    &.toast--info {
+        background-color: $primary-color;
+    }
+}
+
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+// Screen-reader-only span naming the icon inside the toast.
+.toast-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 
 .categories-grid {
     display: grid;

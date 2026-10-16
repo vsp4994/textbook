@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as dbStorage from '../indexedDbStorage';
-import { ACTIVE_USER_STORAGE_KEY, GUEST_DOC_ID_KEY, type AppDocument } from '../types';
+import { ACTIVE_USER_STORAGE_KEY, GUEST_DOC_ID_KEY, STARRED_LIST_ID, type AppDocument } from '../types';
 import { mergeDocuments } from '../sync/documentMerge';
 import { createEmptyDocument, migrateDocument } from '../utils/documentUtils';
 
@@ -58,11 +58,36 @@ export const useDocument = (): UseDocumentReturn => {
   const docRef = useRef<AppDocument | null>(null);
   const ownerUserIdRef = useRef<string | null>(null);
 
-  const setDocumentState = useCallback((document: AppDocument) => {
-    docRef.current = document;
-    setDoc(document);
-    setActiveListId(document.activeListId || document.lists[0]?.id || '');
+  // Active-list navigation is in-memory state: the Starred view lives at the
+  // synthetic STARRED_LIST_ID, which is never persisted on the document, so it
+  // must survive document updates (see setDocumentState below). Track the value
+  // in a ref so setters always read the latest navigation target.
+  const activeListIdRef = useRef('');
+
+  const updateActiveListId = useCallback((id: string) => {
+    activeListIdRef.current = id;
+    setActiveListId(id);
   }, []);
+
+  const setDocumentState = useCallback(
+    (document: AppDocument) => {
+      docRef.current = document;
+      setDoc(document);
+
+      // Preserve the Starred view across document updates. Mutations made while
+      // viewing "Starred" (check / delete / star) re-set the document's real
+      // activeListId — the synthetic id in use here is never persisted — so
+      // without this guard the user would be yanked back to the last-visited
+      // list after every edit.
+      const nextActiveListId =
+        activeListIdRef.current === STARRED_LIST_ID
+          ? STARRED_LIST_ID
+          : document.activeListId || document.lists[0]?.id || '';
+
+      updateActiveListId(nextActiveListId);
+    },
+    [updateActiveListId]
+  );
 
   const persistDocument = useCallback(async (document: AppDocument, userId: string | null) => {
     const saved = userId
@@ -136,9 +161,13 @@ export const useDocument = (): UseDocumentReturn => {
       setOwnerUserId(userId);
       setStoredActiveUserId(userId);
       setDocumentState(migratedDocument);
+      // Landing on a different account is a deliberate context switch: always
+      // navigate to that account's own last-active list, even if the previous
+      // user was on the synthetic Starred view.
+      updateActiveListId(migratedDocument.activeListId || migratedDocument.lists[0]?.id || '');
       await persistDocument(migratedDocument, userId);
     },
-    [persistDocument, setDocumentState]
+    [persistDocument, setDocumentState, updateActiveListId]
   );
 
   const applySyncResult = useCallback(
@@ -189,12 +218,15 @@ export const useDocument = (): UseDocumentReturn => {
     setOwnerUserId(null);
     setStoredActiveUserId(null);
     setDocumentState(emptyGuestDocument);
+    // Logging out starts a fresh guest session, so leave the (now empty)
+    // Starred view and land on the guest home instead.
+    updateActiveListId('');
 
     // Remove any previous guest content so another person on the same device cannot see it.
     await dbStorage.deleteDocumentByKey(GUEST_DOC_ID_KEY);
     await dbStorage.deleteLegacyDocument();
     await persistDocument(emptyGuestDocument, null);
-  }, [persistDocument, setDocumentState]);
+  }, [persistDocument, setDocumentState, updateActiveListId]);
 
   return {
     doc,
@@ -202,7 +234,7 @@ export const useDocument = (): UseDocumentReturn => {
     ownerUserId,
     isLoading,
     isDbAvailable,
-    setActiveListId,
+    setActiveListId: updateActiveListId,
     updateDocument,
     getCurrentDocument,
     setUserDocument,

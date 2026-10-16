@@ -39,6 +39,11 @@ export interface AppDocument {
   syncMetadata: SyncMetadata;
 }
 
+// Synthetic list id used by the always-visible "Starred" view in the left nav.
+// No real TodoList row owns this id, so it is never persisted as a list or as
+// the document's activeListId — navigating to it is purely in-memory.
+export const STARRED_LIST_ID = '__starred__';
+
 export interface DriveUser {
   id: string;
   displayName: string;

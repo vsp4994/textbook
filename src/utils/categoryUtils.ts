@@ -1,4 +1,4 @@
-import type { Category, TodoItemType } from '../types';
+import type { Category, TodoItemType, TodoList } from '../types';
 
 export const MAX_CATEGORY_TITLE_LENGTH = 20;
 
@@ -191,3 +191,58 @@ export const migrateCategories = (categories: Category[]): Category[] => {
     subcategories: migrateCategories(cat.subcategories),
   }));
 };
+
+export interface StarredItemEntry {
+  item: TodoItemType;
+  /** Id of the source list the starred todo lives in. */
+  listId: string;
+  /** Title of the source list, shown as the grouping header in the Starred view. */
+  listTitle: string;
+  /** Id of the (possibly nested) category that owns the starred todo. */
+  categoryId: string;
+  /** Human-readable breadcrumb (top category → … → owning category). */
+  categoryPath: string[];
+  /** Category display options, so the Starred view renders todos like their home category. */
+  showCheckboxes: boolean;
+  sortCheckedToBottom: boolean;
+}
+
+/**
+ * Collects every un-checked starred todo across all lists, preserving list
+ * order and the on-screen item order within each category. Completed todos are
+ * excluded so the Starred view only ever shows actionable (unchecked) tasks.
+ * Used by the always-visible Starred view to render a "favorites" list grouped
+ * by its source list.
+ */
+export const collectStarredItems = (lists: TodoList[]): StarredItemEntry[] => {
+  const entries: StarredItemEntry[] = [];
+
+  for (const list of lists) {
+    const walk = (categories: Category[], categoryPath: string[]): void => {
+      for (const category of categories) {
+        const path = [...categoryPath, category.title];
+        for (const item of category.items) {
+          // Only unchecked starred todos appear in the Starred view — checking
+          // one removes it from the list immediately (and shows the toast).
+          if (item.starred && !item.completed) {
+            entries.push({
+              item,
+              listId: list.id,
+              listTitle: list.title,
+              categoryId: category.id,
+              categoryPath: path,
+              showCheckboxes: category.showCheckboxes,
+              sortCheckedToBottom: category.sortCheckedToBottom,
+            });
+          }
+        }
+        walk(category.subcategories, path);
+      }
+    };
+
+    walk(list.categories, []);
+  }
+
+  return entries;
+};
+
