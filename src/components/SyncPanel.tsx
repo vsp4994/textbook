@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Icon, JsonView } from '../components';
+import { Icon
+  // , JsonView 
+} from '../components';
 import { useDriveSync } from '../sync/DriveSyncContext';
 import type { AppDocument } from '../types';
 
@@ -151,7 +153,7 @@ export const SyncPanel = ({ document, isDbAvailable }: SyncPanelProps) => {
         </div>
       )}
 
-      {currentUser?.emailAddress === 'vsp4994@gmail.com' && document && (
+      {/* {currentUser?.emailAddress === 'vsp4994@gmail.com' && document && (
         <div className="debug-json-panel">
           <div className="debug-json-header">
             <Icon name="ri-code-box-line" /> Debug JSON
@@ -159,7 +161,7 @@ export const SyncPanel = ({ document, isDbAvailable }: SyncPanelProps) => {
           </div>
           <JsonView data={document} />
         </div>
-      )}
+      )} */}
     </div>
   );
 };

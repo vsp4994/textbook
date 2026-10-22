@@ -573,7 +573,45 @@ const AppContent = ({ document }: AppContentProps) => {
 
   return (
     <div className="app-container">
-      <nav className="tab-navigation">
+      <nav className="app-footer">
+        <SyncPanel document={doc} isDbAvailable={isDbAvailable} />
+      </nav>
+
+      <main className="app-body">
+        {starredView ? (
+          <div className="starred-wrapper">
+            <StarredList
+              entries={starredEntries}
+              onOpenList={handleTabClick}
+              renderTodoItem={renderTodoItem}
+            />
+          </div>
+        ) : activeList ? (
+          <div className="list-wrapper">
+            <div className="list-header-row">
+              <button className="btn btn-outline" onClick={handleAddRootCategory} type="button">
+                <Icon name="ri-add-line" /> Category
+              </button>
+            </div>
+
+            {activeList.categories.length === 0 ? (
+              <div className="empty-state">Click "Category" to get started.</div>
+            ) : (
+              <div className="categories-grid">
+                {activeList.categories.map((category) => renderCategory(category))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <EmptyState
+            icon="ri-book-open-line"
+            title="Every story starts with a blank page."
+            subtitle="Create your first list and give your notes, plans, and ideas a home."
+          />
+        )}
+      </main>
+
+      <footer className="tab-navigation">
         <button
           className={`tab-item starred-tab ${starredView ? 'active' : ''}`}
           onClick={handleStarredClick}
@@ -671,44 +709,6 @@ const AppContent = ({ document }: AppContentProps) => {
             </div>
           )}
         </div>
-      </nav>
-
-      <main className="app-body">
-        {starredView ? (
-          <div className="starred-wrapper">
-            <StarredList
-              entries={starredEntries}
-              onOpenList={handleTabClick}
-              renderTodoItem={renderTodoItem}
-            />
-          </div>
-        ) : activeList ? (
-          <div className="list-wrapper">
-            <div className="list-header-row">
-              <button className="btn btn-outline" onClick={handleAddRootCategory} type="button">
-                <Icon name="ri-add-line" /> Category
-              </button>
-            </div>
-
-            {activeList.categories.length === 0 ? (
-              <div className="empty-state">Click "Category" to get started.</div>
-            ) : (
-              <div className="categories-grid">
-                {activeList.categories.map((category) => renderCategory(category))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <EmptyState
-            icon="ri-book-open-line"
-            title="Every story starts with a blank page."
-            subtitle="Create your first list and give your notes, plans, and ideas a home."
-          />
-        )}
-      </main>
-
-      <footer className="app-footer">
-        <SyncPanel document={doc} isDbAvailable={isDbAvailable} />
       </footer>
 
       {toast && (
@@ -769,3 +769,4 @@ export default function App() {
     </DriveSyncProvider>
   );
 }
+
