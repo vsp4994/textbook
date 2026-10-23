@@ -87,32 +87,35 @@ body {
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    // gap: 16px;
     // padding: 16px;
     // `clip` (not `hidden`) so it does not become a scroll container and break
     // sticky category headers while still preventing horizontal overflow.
     overflow-x: clip; // Prevent horizontal overflow
+    // Fill at least the full viewport height on ALL screens so the sticky
+    // footer bar always sits at the very bottom of the viewport, even on short
+    // pages. `.app-body` flex-grows below (see .app-body) to absorb the leftover
+    // space so the footer lands on the container's bottom edge on web too.
+    // (Previously mobile-only; the `100dvh` line is the modern viewport-height
+    // unit, with `100vh` kept as the fallback for browsers without dvh.)
+    min-height: 100vh;
+    min-height: 100dvh;
 
     @media (max-width: 768px) {
         // padding: 12px;
-        gap: 12px;
+        // gap: 12px;
     }
 
     @media (max-width: 600px) {
-        padding: 0px;
-        gap: 10px;
-        // Fill at least the full viewport height on mobile so the sticky footer
-        // bar always sits at the very bottom of the screen, even on short pages.
-        min-height: 100vh;
-        min-height: 100dvh;
+        // padding: 0px;
+        // margin-top: 10px;
     }
 }
 
 // Sync status header — now rendered in the nav slot at the top of the page.
-.app-footer {
+.app-header {
     background-color: $card-bg;
     padding: 16px;
-    border-radius: $border-radius;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-direction: column;
@@ -310,7 +313,7 @@ body {
 
     .starred-tab-icon {
         color: $primary-color;
-        font-size: 1rem;
+        font-size: 0.9rem;
     }
 
     &.active {
@@ -330,7 +333,9 @@ body {
     // On small screens there is no room for a label beside the other tabs, so
     // show the star icon only (the button still has a title/tooltip).
     @media (max-width: 600px) {
+        width: 50px;
         padding: 6px 8px;
+        flex-direction: column-reverse;
 
         .starred-tab-label {
             display: none;
@@ -341,13 +346,19 @@ body {
 
 // Main App Area and Layouts
 .app-body {
-    min-height: 50vh;
+    // Absorb leftover viewport height so the sticky footer is pushed down to
+    // the very bottom of the screen on every breakpoint. The app-container
+    // above carries `min-height: 100dvh`, and this item flex-grows to fill the
+    // remaining space (previously mobile-only; now shared with web/desktop).
+    flex: 1 1 auto;
+    // `min-height: 0` lets the flex item shrink below its content so the flex
+    // "grow to fill" math works (the previous `min-height: 50vh` is no longer
+    // needed — flex-grow replaces it).
+    min-height: 0;
 
-    @media (max-width: 600px) {
-        // Absorb leftover viewport height so the mobile footer is pushed down
-        // to the bottom of the screen.
-        flex: 1 1 auto;
-        min-height: 0;
+    @media (min-width: 601px) {
+        display: flex;
+        flex-direction: column;
     }
 }
 
@@ -356,12 +367,18 @@ body {
     flex-direction: column;
     gap: 12px;
     padding: 6px;
+
+    @media (min-width: 601px) {
+        flex: 1 1 0;
+        min-height: 0;
+    }
 }
 
 .list-header-row {
     display: flex;
     justify-content: flex-end;
     align-items: center;
+    margin-top: 6px;
 }
 
 // Starred view — the pinned tab renders a virtual "list" of every todo starred
@@ -593,9 +610,11 @@ body {
         display: flex;
         flex-direction: row;
         flex-wrap: nowrap;
-        align-items: flex-start;
+        align-items: flex-start; // keep — cards don't stretch, as before
+        flex: 1 1 0;
+        min-height: 0;
         overflow-x: auto;
-        overflow-y: hidden;
+        overflow-y: auto; // was hidden — see tradeoff below
         padding-bottom: 8px;
 
         >.category-card {
@@ -699,8 +718,6 @@ body {
 
         .category-meta {
             .category-header-title-button {
-                // min-width: 0;
-
                 .category-title {
                     overflow: hidden;
                     text-overflow: ellipsis;
@@ -827,6 +844,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
+
     // A task that has a description carries the single-line preview chip tucked
     // flush underneath its row (it sticks to the bottom of the task), so remove
     // the usual gap between the row and the chip.
@@ -1300,15 +1318,18 @@ body {
     display: flex;
     align-items: center;
     box-shadow: -4px 0 8px rgba(0, 0, 0, 0.5);
+    width: 50px;
 
     .tab-options-button {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         background: none;
         border: none;
         color: $text-muted;
-        font-size: 1.1rem;
-        padding: 8px;
+        font-size: 1.2rem;
+        width: 100%;
+        height: 100%;
         cursor: pointer;
         border-radius: $border-radius;
         transition: all $transition-speed;
@@ -1330,7 +1351,7 @@ body {
         min-width: 240px;
         max-width: 320px;
 
-        .tab-options-menu-header {
+        .tab-options-menu-footer {
             font-size: 0.7rem;
             text-transform: uppercase;
             letter-spacing: 0.04em;

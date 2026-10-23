@@ -11,7 +11,7 @@ interface SyncPanelProps {
 }
 
 const STATUS_LABELS = {
-  'local-only': 'Local only - Connect with Google to sync data',
+  'local-only': 'Local only - Connect to sync data',
   connecting: 'Connecting',
   syncing: 'Syncing',
   synced: 'Synced',

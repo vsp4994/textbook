@@ -151,6 +151,11 @@ const AppContent = ({ document }: AppContentProps) => {
   // changes (updates are immutable, so any mutation replaces `doc`).
   const starredEntries = useMemo(() => (doc ? collectStarredItems(doc.lists) : []), [doc]);
 
+  // At least one real list exists. The Starred tab and the list-settings
+  // (reorder) button are only useful once there's a list to act on, so both
+  // are hidden until the first list is created.
+  const hasLists = doc ? doc.lists.length > 0 : false;
+
   const handleStarredClick = () => {
     setOpenDropdownId(null);
     setTabMenuOpen(false);
@@ -573,7 +578,7 @@ const AppContent = ({ document }: AppContentProps) => {
 
   return (
     <div className="app-container">
-      <nav className="app-footer">
+      <nav className="app-header">
         <SyncPanel document={doc} isDbAvailable={isDbAvailable} />
       </nav>
 
@@ -590,7 +595,7 @@ const AppContent = ({ document }: AppContentProps) => {
           <div className="list-wrapper">
             <div className="list-header-row">
               <button className="btn btn-outline" onClick={handleAddRootCategory} type="button">
-                <Icon name="ri-add-line" /> Category
+                <Icon name="ri-add-line" />Add New Category
               </button>
             </div>
 
@@ -612,18 +617,20 @@ const AppContent = ({ document }: AppContentProps) => {
       </main>
 
       <footer className="tab-navigation">
-        <button
-          className={`tab-item starred-tab ${starredView ? 'active' : ''}`}
-          onClick={handleStarredClick}
-          type="button"
-          title={`Starred (${starredEntries.length})`}
-        >
-          <Icon name={starredView ? 'ri-star-fill' : 'ri-star-line'} className="starred-tab-icon" />
-          <span className="starred-tab-label">Starred</span>
-          <span className="starred-tab-label-count">
-            {starredEntries.length}
-          </span>
-        </button>
+        {hasLists && (
+          <button
+            className={`tab-item starred-tab ${starredView ? 'active' : ''}`}
+            onClick={handleStarredClick}
+            type="button"
+            title={`Starred (${starredEntries.length})`}
+          >
+            <Icon name={starredView ? 'ri-star-fill' : 'ri-star-line'} className="starred-tab-icon" />
+            <span className="starred-tab-label">Starred</span>
+            <span className="starred-tab-label-count">
+              {starredEntries.length}
+            </span>
+          </button>
+        )}
 
         <div className="tab-list">
           {doc?.lists.map((list) => (
@@ -642,73 +649,76 @@ const AppContent = ({ document }: AppContentProps) => {
           </button>
         </div>
 
-        <div className="tab-options">
-          <button
-            ref={tabOptionsRef}
-            className="tab-options-button"
-            onClick={toggleTabMenu}
-            type="button"
-            title="View and reorder lists"
-          >
-            <Icon name="ri-list-settings-line" />
-          </button>
-
-          {tabMenuOpen && doc && (
-            <div
-              ref={tabMenuRef}
-              className="tab-options-menu"
-              style={{ top: tabMenuPos.top, left: tabMenuPos.left }}
+        {hasLists && (
+          <div className="tab-options">
+            <button
+              ref={tabOptionsRef}
+              className="tab-options-button"
+              onClick={toggleTabMenu}
+              type="button"
+              title="View and reorder lists"
             >
-              <div className="tab-options-menu-header">Drag to reorder lists</div>
-              {doc.lists.length === 0 ? (
-                <div className="tab-options-empty">No lists yet.</div>
-              ) : (
-                <ReorderList
-                  items={doc.lists}
-                  getItemId={(list) => list.id}
-                  renderItem={(list) => (
-                    <>
-                      <Icon name="ri-draggable" className="tab-options-drag reorder-handle" />
-                      <button
-                        className="tab-options-title"
-                        onClick={() => handleSelectList(list.id)}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        type="button"
-                        title={`Go to ${list.title}`}
-                      >
-                        {list.title}
-                      </button>
-                      {list.id === activeListId && (
-                        <Icon name="ri-check-line" className="tab-options-active" />
-                      )}
-                      <button
-                        className="icon-btn primary"
-                        onClick={() => handleEditList(list.id)}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        type="button"
-                        title="Rename list"
-                      >
-                        <Icon name="ri-pencil-line" />
-                      </button>
-                      <button
-                        className="icon-btn danger"
-                        onClick={() => handleDeleteList(list.id)}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        type="button"
-                        title="Delete list"
-                      >
-                        <Icon name="ri-delete-bin-line" />
-                      </button>
-                    </>
-                  )}
-                  onReorder={handleReorderLists}
-                  className="tab-options-list"
-                  itemClassName="tab-options-item"
-                />
-              )}
-            </div>
-          )}
-        </div>
+              <Icon name="ri-list-settings-line" />
+            </button>
+
+
+            {tabMenuOpen && doc && (
+              <div
+                ref={tabMenuRef}
+                className="tab-options-menu"
+                style={{ top: tabMenuPos.top, left: tabMenuPos.left }}
+              >
+                <div className="tab-options-menu-footer">Drag to reorder lists</div>
+                {doc.lists.length === 0 ? (
+                  <div className="tab-options-empty">No lists yet.</div>
+                ) : (
+                  <ReorderList
+                    items={doc.lists}
+                    getItemId={(list) => list.id}
+                    renderItem={(list) => (
+                      <>
+                        <Icon name="ri-draggable" className="tab-options-drag reorder-handle" />
+                        <button
+                          className="tab-options-title"
+                          onClick={() => handleSelectList(list.id)}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          type="button"
+                          title={`Go to ${list.title}`}
+                        >
+                          {list.title}
+                        </button>
+                        {list.id === activeListId && (
+                          <Icon name="ri-check-line" className="tab-options-active" />
+                        )}
+                        <button
+                          className="icon-btn primary"
+                          onClick={() => handleEditList(list.id)}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          type="button"
+                          title="Rename list"
+                        >
+                          <Icon name="ri-pencil-line" />
+                        </button>
+                        <button
+                          className="icon-btn danger"
+                          onClick={() => handleDeleteList(list.id)}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          type="button"
+                          title="Delete list"
+                        >
+                          <Icon name="ri-delete-bin-line" />
+                        </button>
+                      </>
+                    )}
+                    onReorder={handleReorderLists}
+                    className="tab-options-list"
+                    itemClassName="tab-options-item"
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </footer>
 
       {toast && (

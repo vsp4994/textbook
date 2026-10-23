@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { type Category as CategoryType, type TodoItemType } from '../../types';
 import { Icon } from '../Icon';
 import { Modal } from '../Modal';
-import { useDropdownFlip, useTextPrompt } from '../../hooks';
+import { useDropdownFlip, useMediaQuery, useTextPrompt, WEB_VIEW_QUERY } from '../../hooks';
 import { clampCategoryTitle, countCategoryItems, hasAnyCompletedItems, uncheckAllItems, sortTodoItems, hasAnyStarredItems } from '../../utils';
 
 interface CategoryProps {
@@ -48,6 +48,15 @@ export const Category: React.FC<CategoryProps> = ({
   // category for the current session WITHOUT persisting it; the persisted
   // `collapsed` value only changes through the "Keep open" dropdown option.
   const [uiCollapsed, setUiCollapsed] = useState(category.collapsed);
+
+  // Desktop-only behavior: on the web view (>= 601px, see WEB_VIEW_QUERY) the
+  // top-level (depth-1) categories are always rendered open. This is enforced
+  // purely in the render output via `effectiveCollapsed` below — the underlying
+  // `uiCollapsed` / persisted `collapsed` state is never touched, so the mobile
+  // layout (and any saved "Keep open" preference) stays fully intact.
+  const isWebView = useMediaQuery(WEB_VIEW_QUERY);
+  const forceOpenOnWeb = isWebView && category.depth === 1;
+  const effectiveCollapsed = forceOpenOnWeb ? false : uiCollapsed;
 
   // Rename prompt state (replaces native prompt(), which cannot cap length).
   const [isRenameOpen, setIsRenameOpen] = useState(false);
@@ -180,7 +189,7 @@ export const Category: React.FC<CategoryProps> = ({
       <div className="category-header">
         <div className="category-meta">
           <button className="category-header-title-button" onClick={handleCategoryTitleClick} type='button'>
-            <Icon name={uiCollapsed ? "ri-arrow-right-s-line" : "ri-arrow-down-s-line"} className="fold-icon" />
+            <Icon name={effectiveCollapsed ? "ri-arrow-right-s-line" : "ri-arrow-down-s-line"} className="fold-icon" />
             {/* <Icon name={category.showCheckboxes ? "ri-list-view" : "ri-text-block"} className="category-mode-icon" /> */}
             <span className="category-title">{category.title}</span>
             {hasStarred && <Icon name="ri-star-fill" className="category-star-icon" />}
@@ -206,10 +215,12 @@ export const Category: React.FC<CategoryProps> = ({
             <button onClick={handleRenameClick} type='button'>
               Rename
             </button>
-            <button onClick={handleKeepOpenToggle} type='button'>
-              <Icon name={category.collapsed ? "ri-checkbox-blank-line" : "ri-checkbox-fill"} />
-              <span style={{ marginLeft: '8px' }}>Keep open</span>
-            </button>
+            {!forceOpenOnWeb && (
+              <button onClick={handleKeepOpenToggle} type='button'>
+                <Icon name={category.collapsed ? "ri-checkbox-blank-line" : "ri-checkbox-fill"} />
+                <span style={{ marginLeft: '8px' }}>Keep open</span>
+              </button>
+            )}
             {category.showCheckboxes && (
               <button onClick={handleSortCheckedToggle} type='button'>
                 <Icon name={category.sortCheckedToBottom ? "ri-checkbox-fill" : "ri-checkbox-blank-line"} />
@@ -248,12 +259,12 @@ export const Category: React.FC<CategoryProps> = ({
           0fr <-> 1fr) so folding reads as a smooth open/close on every depth,
           instead of the content popping in/out. `inert` keeps the folded
           content out of the tab order and clicks while collapsed. */}
-      <div className={`category-body${uiCollapsed ? ' is-collapsed' : ''}`}>
+      <div className={`category-body${effectiveCollapsed ? ' is-collapsed' : ''}`}>
         {/* Dedicated collapse wrapper with NO padding of its own. The outer
             .category-body collapses the track via 0fr; this wrapper collapses
             its own track via 0fr + overflow: hidden so the folded height is
             truly 0 even though .category-body__inner keeps its 8px padding. */}
-        <div className="category-body__collapse" inert={uiCollapsed}>
+        <div className="category-body__collapse" inert={effectiveCollapsed}>
           <div className="category-body__inner">
             {sortedItems.map(handleTodoItemRender)}
             {category.subcategories.map(handleSubcategoryRender)}
