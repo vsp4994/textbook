@@ -626,7 +626,8 @@ body {
 
 // Categories and subcategories nesting
 .category-card {
-    background-color: $card-bg;
+    // background-color: $card-bg;
+    background-color: rgba($card-bg, 0.35);
     border-radius: $border-radius;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     border: 1px solid $border-color;
