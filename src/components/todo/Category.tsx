@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { type Category as CategoryType, type TodoItemType } from '../../types';
 import { Icon } from '../Icon';
 import { Modal } from '../Modal';
 import { useDropdownFlip, useMediaQuery, useTextPrompt, WEB_VIEW_QUERY } from '../../hooks';
 import { clampCategoryTitle, countCategoryItems, hasAnyCompletedItems, uncheckAllItems, sortTodoItems, hasAnyStarredItems } from '../../utils';
+import type { SearchNavigationTarget } from '../../search/types';
 
 interface CategoryProps {
   category: CategoryType;
@@ -14,6 +15,8 @@ interface CategoryProps {
   openDropdownId: string | null;
   setOpenDropdownId: (id: string | null) => void;
   setFocusInputId: (id: string | null) => void;
+  /** UI-only reveal target from search navigation (see App.handleSearchNavigate). */
+  searchTarget?: SearchNavigationTarget | null;
   renderTodoItem: (
     item: TodoItemType,
     showCheckboxes: boolean,
@@ -32,6 +35,7 @@ export const Category: React.FC<CategoryProps> = ({
   openDropdownId,
   setOpenDropdownId,
   setFocusInputId,
+  searchTarget,
   renderTodoItem,
   renderCategory,
 }) => {
@@ -82,6 +86,27 @@ export const Category: React.FC<CategoryProps> = ({
     setPersistedCollapsed(category.collapsed);
     setUiCollapsed(category.collapsed);
   }
+
+  // Search-reveal support (UI-only): when a search result points at this
+  // category, expand it once per navigation (session-only, never persisted) and
+  // scroll it into view when it is the focus target. Uses the same render-time
+  // adjustment pattern as the persisted `collapsed` sync above.
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const [appliedRevealToken, setAppliedRevealToken] = useState(0);
+  if (
+    searchTarget &&
+    searchTarget.token !== appliedRevealToken &&
+    searchTarget.expandCategoryIds.includes(category.id)
+  ) {
+    setAppliedRevealToken(searchTarget.token);
+    setUiCollapsed(false);
+  }
+
+  useLayoutEffect(() => {
+    if (searchTarget?.focusCategoryId === category.id && rootRef.current) {
+      rootRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [searchTarget, category.id]);
 
   const handleCategoryTitleClick = () => {
     setUiCollapsed((c) => !c);
@@ -185,12 +210,12 @@ export const Category: React.FC<CategoryProps> = ({
   }
 
   return (
-    <div key={category.id} className={`category-card depth-${category.depth}${openDropdownId === category.id ? ' dropdown-open' : ''}`}>
+    <div key={category.id} ref={rootRef} className={`category-card depth-${category.depth}${openDropdownId === category.id ? ' dropdown-open' : ''}`}>
       <div className="category-header">
         <div className="category-meta">
           <button className="category-header-title-button" onClick={handleCategoryTitleClick} type='button'>
+            {/* TODO: #2 hide main category icon chevron in web view as no functionalty to open close in the web view. */}
             <Icon name={effectiveCollapsed ? "ri-arrow-right-s-line" : "ri-arrow-down-s-line"} className="fold-icon" />
-            {/* <Icon name={category.showCheckboxes ? "ri-list-view" : "ri-text-block"} className="category-mode-icon" /> */}
             <span className="category-title">{category.title}</span>
             {hasStarred && <Icon name="ri-star-fill" className="category-star-icon" />}
             {remainingIndicator}

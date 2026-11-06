@@ -1,13 +1,17 @@
 import { useState } from 'react';
-import { Icon
+import {
+  Icon
   // , JsonView 
 } from '../components';
+import { GlobalSearch, type SearchResult } from '../search';
 import { useDriveSync } from '../sync/DriveSyncContext';
 import type { AppDocument } from '../types';
 
 interface SyncPanelProps {
   document: AppDocument | null;
   isDbAvailable: boolean;
+  /** Called when the user picks a search result; App reveals + navigates to it. */
+  onSearchNavigate: (result: SearchResult) => void;
 }
 
 const STATUS_LABELS = {
@@ -30,7 +34,7 @@ const STATUS_CLASS_NAMES = {
   error: 'state-sync-failed',
 } as const;
 
-export const SyncPanel = ({ document, isDbAvailable }: SyncPanelProps) => {
+export const SyncPanel = ({ document, isDbAvailable, onSearchNavigate }: SyncPanelProps) => {
   const {
     status,
     errorMessage,
@@ -54,7 +58,7 @@ export const SyncPanel = ({ document, isDbAvailable }: SyncPanelProps) => {
   const handleConnect = () => {
     void connect();
   };
-  
+
   const handleRetrySync = () => {
     void syncNow();
   };
@@ -93,6 +97,8 @@ export const SyncPanel = ({ document, isDbAvailable }: SyncPanelProps) => {
             <Icon name="ri-plug-line" />
           </button>
         )}
+
+        <GlobalSearch document={document} onNavigate={onSearchNavigate} />
 
         {needsReconnect && (
           <button
@@ -152,7 +158,6 @@ export const SyncPanel = ({ document, isDbAvailable }: SyncPanelProps) => {
           <Icon name="ri-alert-line" /> IndexedDB is unavailable. Changes only survive while this page stays open.
         </div>
       )}
-
       {/* {currentUser?.emailAddress === 'vsp4994@gmail.com' && document && (
         <div className="debug-json-panel">
           <div className="debug-json-header">

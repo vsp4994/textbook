@@ -18,6 +18,7 @@ import {
 } from './utils/categoryUtils';
 import { generateUUID } from './utils/uuid';
 import { SyncPanel } from './components/SyncPanel';
+import type { SearchNavigationTarget, SearchResult } from './search';
 
 interface ToastState {
   severity: ToastSeverity;
@@ -79,6 +80,11 @@ const AppContent = ({ document }: AppContentProps) => {
   // the Starred view. The Toast component owns its dismiss timer; App only
   // decides when to show one.
   const [toast, setToast] = useState<ToastState | null>(null);
+
+  // Reveal target for search navigation (see handleSearchNavigate). UI-only:
+  // never persisted, cleared right after the view has expanded/scrolled once.
+  const [searchReveal, setSearchReveal] = useState<SearchNavigationTarget | null>(null);
+  const searchRevealTokenRef = useRef(0);
 
   const showToast = useCallback((severity: ToastSeverity, message: string) => {
     setToast({ severity, message, id: Date.now() });
@@ -464,6 +470,7 @@ const AppContent = ({ document }: AppContentProps) => {
       openDropdownId={openDropdownId}
       setOpenDropdownId={setOpenDropdownId}
       setFocusInputId={setFocusInputId}
+      searchTarget={searchReveal}
       renderTodoItem={renderTodoItem}
       renderCategory={renderCategory}
     />
@@ -487,6 +494,44 @@ const AppContent = ({ document }: AppContentProps) => {
   const handleSelectList = (listId: string) => {
     handleTabClick(listId);
     setTabMenuOpen(false);
+  };
+
+  // Search result → navigate to the entity's view. Purely UI: the active list
+  // is switched in-memory only (same as the Starred view — never persisted), and
+  // collapsed categories on the path are expanded once in session-only state so
+  // the target becomes visible. The token makes each navigation a fresh reveal.
+  const handleSearchNavigate = (result: SearchResult) => {
+    if (!doc) return;
+    const targetList = doc.lists.find((list) => list.id === result.listId);
+    if (!targetList) return;
+
+    setActiveListId(result.listId);
+    setOpenDropdownId(null);
+
+    if (result.kind === 'list') {
+      setSearchReveal(null);
+      return;
+    }
+
+    const token = searchRevealTokenRef.current + 1;
+    searchRevealTokenRef.current = token;
+    setSearchReveal({
+      token,
+      listId: result.listId,
+      expandCategoryIds: result.categoryIds,
+      focusCategoryId: result.kind === 'category' ? result.id : undefined,
+      focusTodoId: result.todoId,
+    });
+
+    if (result.todoId) {
+      // Focuses (and scrolls into view) the task's title input.
+      setFocusInputId(result.todoId);
+    }
+
+    // Release the UI-only reveal once React has committed the expansion/scroll;
+    // the expansion permanently flipped the categories' session-only fold state,
+    // so nothing collapses back and no auto-scroll lingers.
+    window.setTimeout(() => setSearchReveal(null), 0);
   };
 
   const handleModalClose = () => {
@@ -579,7 +624,11 @@ const AppContent = ({ document }: AppContentProps) => {
   return (
     <div className="app-container">
       <nav className="app-header">
-        <SyncPanel document={doc} isDbAvailable={isDbAvailable} />
+        <SyncPanel
+          document={doc}
+          isDbAvailable={isDbAvailable}
+          onSearchNavigate={handleSearchNavigate}
+        />
       </nav>
 
       <main className="app-body">
@@ -594,6 +643,8 @@ const AppContent = ({ document }: AppContentProps) => {
         ) : activeList ? (
           <div className="list-wrapper">
             <div className="list-header-row">
+              {/* TODO: #5 Show list title and add required styles (color shd be in primary and bold) */}
+              <span className="list-title"></span>
               <button className="btn btn-outline" onClick={handleAddRootCategory} type="button">
                 <Icon name="ri-add-line" />Add New Category
               </button>
@@ -633,14 +684,15 @@ const AppContent = ({ document }: AppContentProps) => {
         )}
 
         <div className="tab-list">
-          {doc?.lists.map((list) => (
+          {/* TODO: #4 can you add scroll feature in mobile view. when user scroll side (left or right with finger in the mobile) before or after list shd open */}
+          {doc?.lists.map((list, index) => (
             <button
               key={list.id}
               className={`tab-item ${list.id === activeListId ? 'active' : ''}`}
               onClick={() => handleTabClick(list.id)}
               type="button"
             >
-              {list.title}
+              <span>{list.title}<br /> <span style={{ color: 'gray' }}>{index + 1}</span></span>
             </button>
           ))}
 

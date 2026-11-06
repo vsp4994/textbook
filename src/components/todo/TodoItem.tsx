@@ -288,6 +288,9 @@ export const TodoItem: React.FC<TodoItemProps> = ({
       ref={rootRef}
       className={`todo-item${descriptionOpen ? ' is-description-open' : ''}${hasDescription ? ' has-description' : ''}`}
     >
+      {/* FIXME: when user added a task with description. and again if user wants to change the title of the task, task is automatically gets deleted.
+if the title is empty, then the task is getting deleted automatically.
+when user clears the title, its okay to remove the task automatically when he clicked somewhere else in the screen. but not when that task have description. let me knpowif you have any question related to this issue.  */}
       <div className="todo-row">
         {showCheckboxes && (
           <input
@@ -393,6 +396,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
         <div className="todo-description-wrap">
           <dialog ref={previewDialogRef} className="markdown-preview-dialog">
             <div className="markdown-preview-header">
+              {/* TODO: #3 show task title here instead of Preview */}
               <span>Preview</span>
 
               <form method="dialog">

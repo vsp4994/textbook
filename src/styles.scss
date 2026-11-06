@@ -990,6 +990,7 @@ body {
         font-size: 0.8rem;
         line-height: 1rem;
         border-radius: 0 0 6px 6px;
+        padding-bottom: 40px;
     }
 }
 
@@ -1367,7 +1368,7 @@ body {
         }
 
         .tab-options-list {
-            max-height: 420px;
+            max-height: 520px;
             overflow-y: auto;
         }
     }
@@ -1807,7 +1808,6 @@ body {
     padding: 0;
     text-align: left;
     width: min(680px, 100vw);
-    max-height: 90vh;
     overflow-y: auto;
     border: 1px solid $border-color;
     border-radius: 10px;
@@ -1826,15 +1826,225 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 16px;
+    padding: 8px 10px;
     background: $card-bg;
     border-bottom: 1px solid $border-color;
     font-size: 0.9rem;
     font-weight: 600;
 }
 
+// ============================================================================
+// Global Search (TODO: #1) — UI-only search and navigate feature.
+// Components live in src/search/ (atomic design); this file only styles them.
+// ============================================================================
+
+// Wraps the header toggle button + the fixed overlay so the toggle stays in the
+// sync-controls flex row while the overlay can cover the entire viewport.
+.global-search {
+    display: flex;
+    align-items: center;
+}
+
+// Full-screen overlay, portaled to `document.body` (see GlobalSearch.tsx) so it
+// escapes the sticky header's stacking context and is truly on top of everything:
+// above the bottom tab bar (30), task dropdown menus (9999999+), and the modal
+// dialogs (10000000). Nothing else in the app is reachable while searching.
+.global-search__overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000002;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    // "Light padding/margin": the results dropdown never touches the screen
+    // edges, and gets some breathing room from the top.
+    padding: max(16px, 3vh) max(12px, 4vw);
+}
+
+// Panel pinned near the top of the overlay; keeps a readable width on wide
+// monitors and clips the results list so only that list scrolls.
+.global-search__panel {
+    width: 100%;
+    max-width: 760px;
+    max-height: calc(100vh - max(32px, 6vh));
+    max-height: calc(100dvh - max(32px, 6vh));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: $card-bg;
+    border: 1px solid $border-color;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+
+    @media (max-width: 600px) {
+        border-radius: 6px;
+    }
+}
+
+// Full-width search bar — spans the same footprint the sync panel has in the
+// header, with the text input stretching to fill the available space.
+.search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background-color: $card-bg;
+    border-bottom: 1px solid $border-color;
+}
+
+.search-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    background-color: $bg-color;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    padding: 0 10px;
+    min-height: 44px;
+
+    &:focus-within {
+        border-color: $primary-color;
+        box-shadow: 0 0 0 1px $primary-color;
+    }
+}
+
+.search-input__icon {
+    color: $text-muted;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.search-input__field {
+    flex: 1;
+    min-width: 0;
+    background: none;
+    border: none;
+    outline: none;
+    color: $text-color;
+    font-size: 1rem;
+
+    &::placeholder {
+        color: $text-muted;
+    }
+}
+
+.search-input__clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: $text-muted;
+    font-size: 1.1rem;
+    padding: 6px;
+    margin: -6px -6px -6px 0;
+    cursor: pointer;
+    border-radius: 50%;
+
+    &:hover {
+        color: $text-color;
+    }
+}
+
+// Close button — as tall as the search input beside it so the header reads as
+// one cohesive control. `align-self: stretch` makes it match the search bar's
+// row height automatically (the 44px input drives that height), and `min-width`
+// gives it a square, comfortable tap target next to the rounded input.
+.search-bar__close {
+    flex-shrink: 0;
+    align-self: stretch;
+    justify-content: center;
+    min-width: 44px;
+    font-size: 1.2rem;
+}
+
+// Scrollable results dropdown — the panel's only scroll container, so any
+// number of results can be browsed without the search bar leaving the screen.
+.search-results {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.search-results__scroll {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px 14px;
+}
+
+.search-results--empty .search-results__empty {
+    padding: 18px 12px;
+    text-align: center;
+    color: $text-muted;
+    font-size: 0.9rem;
+}
+
+// Big clickable result button.
+.search-result-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    background-color: $bg-color;
+    border: 1px solid $border-color;
+    border-radius: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    color: $text-color;
+    @include focus-outline;
+
+    &:hover,
+    &:focus-visible {
+        border-color: $primary-color;
+        background-color: rgba($primary-color, 0.1);
+    }
+}
+
+.search-result-item__icon {
+    color: $primary-color;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.search-result-item__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.search-result-item__title {
+    font-size: 1rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.search-result-item__context {
+    font-size: 0.75rem;
+    color: $text-muted;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.search-result-item__go {
+    color: $text-muted;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
 .markdown-preview-content {
-    padding: 16px;
+    padding: 24px;
     overflow-wrap: anywhere;
 
     pre,
