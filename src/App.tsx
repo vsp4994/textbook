@@ -627,6 +627,7 @@ const AppContent = ({ document }: AppContentProps) => {
   };
   const appBodyRef = useHorizontalSwipe({
     enabled:
+      isLoading &&
       isMobileView &&
       hasLists &&
       !modalConfig.isOpen &&
