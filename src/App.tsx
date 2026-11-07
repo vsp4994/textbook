@@ -1,7 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Category as CategoryComponent, EmptyState, Icon, Modal, ReorderList, StarredList, Toast, TodoItem, type ToastSeverity } from './components';
 import { useDocument, type UseDocumentReturn } from './hooks/useDocument';
-import { useTextPrompt } from './hooks';
+import { useHorizontalSwipe, useMediaQuery, useTextPrompt, WEB_VIEW_QUERY } from './hooks';
 import { DriveSyncProvider } from './sync/DriveSyncContext';
 import { MAX_DEPTH, STARRED_LIST_ID, type Category, type TodoItemType, type TodoList } from './types';
 import type { ModalConfig } from './components/types/todoItem.types';
@@ -610,6 +610,35 @@ const AppContent = ({ document }: AppContentProps) => {
     };
   }, [tabMenuOpen]);
 
+  // --- Horizontal swipe navigation between lists (mobile only) ---
+  // Swiping a finger left/right across the content opens the next/previous
+  // list, following the same left-to-right order as the tabs (Starred, then
+  // each list). Swipes that start on a text input/textarea are ignored so
+  // editing is never interrupted; vertical scrolling is untouched because a
+  // swipe only registers when horizontal travel clearly dominates.
+  const isMobileView = !useMediaQuery(WEB_VIEW_QUERY);
+  const openAdjacentList = (direction: -1 | 1) => {
+    if (!doc || doc.lists.length === 0) return;
+    const navIds = [STARRED_LIST_ID, ...doc.lists.map((list) => list.id)];
+    const targetId = navIds[navIds.indexOf(activeListId) + direction];
+    if (targetId === undefined) return; // boundary — no adjacent list
+    if (targetId === STARRED_LIST_ID) handleStarredClick();
+    else handleTabClick(targetId);
+  };
+  const appBodyRef = useHorizontalSwipe({
+    enabled:
+      isMobileView &&
+      hasLists &&
+      !modalConfig.isOpen &&
+      !tabMenuOpen &&
+      !openDropdownId,
+    onSwipeLeft: () => openAdjacentList(1),
+    onSwipeRight: () => openAdjacentList(-1),
+    shouldIgnoreTarget: (target) =>
+      (target instanceof Element ? target : null)?.closest(
+        'input, textarea, select, [contenteditable="true"]'
+      ) != null,
+  });
 
   if (isLoading) {
     return (
@@ -631,7 +660,7 @@ const AppContent = ({ document }: AppContentProps) => {
         />
       </nav>
 
-      <main className="app-body">
+      <main ref={appBodyRef} className="app-body">
         {starredView ? (
           <div className="starred-wrapper">
             <StarredList
@@ -684,7 +713,6 @@ const AppContent = ({ document }: AppContentProps) => {
         )}
 
         <div className="tab-list">
-          {/* TODO: #4 can you add scroll feature in mobile view. when user scroll side (left or right with finger in the mobile) before or after list shd open */}
           {doc?.lists.map((list, index) => (
             <button
               key={list.id}

@@ -1,5 +1,4 @@
-// Search feature (TODO: #1) — shared types.
-//
+
 // This feature is UI-only: it searches the in-memory document and lets the user
 // navigate to a result. It never mutates the document's data or shapes.
 
