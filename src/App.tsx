@@ -636,9 +636,9 @@ const AppContent = ({ document }: AppContentProps) => {
     onSwipeLeft: () => openAdjacentList(1),
     onSwipeRight: () => openAdjacentList(-1),
     shouldIgnoreTarget: (target) =>
-      (target instanceof Element ? target : null)?.closest(
-        'input, textarea, select, [contenteditable="true"]'
-      ) != null,
+  (target instanceof Element ? target : null)?.closest(
+    'textarea, select, [contenteditable="true"], input:not(.todo-title-input)'
+  ) != null,
   });
 
   if (isLoading) {
