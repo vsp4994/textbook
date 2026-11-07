@@ -671,10 +671,9 @@ const AppContent = ({ document }: AppContentProps) => {
             />
           </div>
         ) : activeList ? (
-          <div className="list-wrapper">
+          <div key={activeListId} className="list-wrapper">
             <div className="list-header-row">
-              {/* TODO: #5 Show list title and add required styles (color shd be in primary and bold) */}
-              <span className="list-title"></span>
+              <span className="list-title">{activeList.title}</span>
               <button className="btn btn-outline" onClick={handleAddRootCategory} type="button">
                 <Icon name="ri-add-line" />Add New Category
               </button>
