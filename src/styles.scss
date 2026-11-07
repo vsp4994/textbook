@@ -262,6 +262,14 @@ body {
         &::-webkit-scrollbar {
             display: none; // Chrome/Safari
         }
+
+        .tab-list-item-index {
+            font-size: 0.6rem;
+            color: gray;
+            @media (max-width: 600px) {
+                display: none;
+            }
+        }
     }
 }
 

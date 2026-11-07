@@ -720,7 +720,7 @@ const AppContent = ({ document }: AppContentProps) => {
               onClick={() => handleTabClick(list.id)}
               type="button"
             >
-              <span>{list.title}<br /> <span style={{ color: 'gray' }}>{index + 1}</span></span>
+              <span>{list.title}<br /> <span className='tab-list-item-index'>{index + 1}</span></span>
             </button>
           ))}
 
