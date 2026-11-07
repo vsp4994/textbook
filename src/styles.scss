@@ -363,7 +363,9 @@ body {
     // "grow to fill" math works (the previous `min-height: 50vh` is no longer
     // needed — flex-grow replaces it).
     min-height: 0;
-
+    @media (max-width: 600px) {
+        touch-action: pan-y;
+    }
     @media (min-width: 601px) {
         display: flex;
         flex-direction: column;
