@@ -246,7 +246,7 @@ const AppContent = ({ document }: AppContentProps) => {
     setModalConfig({
       isOpen: true,
       type: 'danger',
-      title: 'Delete List',
+      title: `Delete List -  ${target.title}`,
       message: `Are you absolutely sure you want to delete the list "${target.title}" and all its contents?`,
       onConfirm: () => {
         const remainingLists = doc.lists.filter((list) => list.id !== listId);
@@ -259,8 +259,8 @@ const AppContent = ({ document }: AppContentProps) => {
           activeListId: fallbackListId,
         });
       },
-      confirmLabel: 'Delete',
-      cancelLabel: 'Cancel',
+      confirmLabel: 'Yes, Delete!',
+      cancelLabel: 'No, Keep it',
     });
   };
 
@@ -354,8 +354,8 @@ const AppContent = ({ document }: AppContentProps) => {
           ),
         });
       },
-      confirmLabel: 'Delete',
-      cancelLabel: 'Cancel',
+      confirmLabel: 'Yes, Delete!',
+      cancelLabel: 'No, Keep it',
     });
   };
 
@@ -381,8 +381,8 @@ const AppContent = ({ document }: AppContentProps) => {
           ),
         });
       },
-      confirmLabel: 'Delete',
-      cancelLabel: 'Cancel',
+      confirmLabel: 'Yes, Delete!',
+      cancelLabel: 'No, Keep it',
     });
   };
 
@@ -680,9 +680,9 @@ const AppContent = ({ document }: AppContentProps) => {
     onSwipeLeft: () => openAdjacentList(1),
     onSwipeRight: () => openAdjacentList(-1),
     shouldIgnoreTarget: (target) =>
-  (target instanceof Element ? target : null)?.closest(
-    'textarea, select, [contenteditable="true"], input:not(.todo-title-input)'
-  ) != null,
+      (target instanceof Element ? target : null)?.closest(
+        'textarea, select, [contenteditable="true"], input:not(.todo-title-input)'
+      ) != null,
   });
 
   if (isLoading) {

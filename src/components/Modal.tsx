@@ -59,6 +59,9 @@ export const Modal: React.FC<ModalProps> = ({
         <h3>{title}</h3>
         {children ?? <p>{message}</p>}
         <div className="modal-actions">
+          <button className="btn btn-secondary" onClick={onClose}>
+            {cancelLabel}
+          </button>
           <button
             className={getButtonClass()}
             disabled={confirmDisabled}
@@ -68,9 +71,6 @@ export const Modal: React.FC<ModalProps> = ({
             }}
           >
             {confirmLabel}
-          </button>
-          <button className="btn btn-secondary" onClick={onClose}>
-            {cancelLabel}
           </button>
         </div>
       </div>

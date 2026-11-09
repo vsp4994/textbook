@@ -461,6 +461,19 @@ body {
     padding: 6px;
 }
 
+// In the web view (>= 601px) each starred list-group renders as a fixed 400px
+// card, matching the kanban category-card width. `.starred-wrapper` uses auto
+// horizontal margins inside the flex-column `.app-body`, which makes it
+// shrink-to-fit its content on desktop; the fixed width anchors each group so
+// a sparse starred view doesn't collapse into a very narrow column. (Mobile is
+// untouched — `.app-body` isn't flex there, so groups stretch full width.)
+.starred-group {
+    @media (min-width: 601px) {
+        width: 400px;
+        max-width: 100%;
+    }
+}
+
 .starred-list {
     display: flex;
     flex-direction: column;
@@ -702,21 +715,21 @@ body {
     background-color: rgba($card-bg, 0.35);
     border-radius: $border-radius;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    border: 1px solid $border-color;
+    border: 0.5px solid $border-color;
     overflow: visible;
 
     &.depth-1 {
-        border-left: 3px solid #bd6b00;
+        border-left: 2px solid #bd6b00;
     }
 
     // Nested categories get a full colored outline on every side so they are
     // easy to distinguish from top-level (depth-1) cards.
     &.depth-2 {
-        border-left: 3px solid #9d52a7;
+        border-left: 2px solid #9d52a7;
     }
 
     &.depth-3 {
-        border-left: 3px solid #16a34a;
+        border-left: 2px solid #16a34a;
     }
 
     // Tint each hierarchy level's header to match its colored left border, so
@@ -815,12 +828,6 @@ body {
         font-size: 1rem;
         margin-inline: 4px;
         color: $text-muted;
-    }
-
-    .category-mode-icon {
-        font-size: 1rem;
-        margin-right: 4px;
-        color: $primary-color;
     }
 
     .category-header-title-button {
@@ -1028,6 +1035,55 @@ body {
     }
 }
 
+// Task whose description is exactly a single link: the title renders as a
+// primary, underlined link (instead of the editable input) and opens the URL
+// in a new tab on click — a "pure link" title (see getLinkOnlyUrl). The box
+// mirrors `.todo-title-input` (flex-grow / padding / font-size) so the row
+// doesn't shift when the two swap.
+// Flex spacer that keeps the row's action buttons right-aligned (exactly as
+// the editable title input does) while the anchor inside stays only as wide as
+// its text — so only the text itself is clickable, not the whole row strip.
+.todo-title-link-wrap {
+    flex-grow: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+}
+
+.todo-title-link {
+    display: inline-block;
+    border: none;
+    background-color: transparent;
+    color: $primary-color;
+    font-size: 0.8rem;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+
+    @media (max-width: 600px) {
+        font-size: 0.85rem;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            color: $primary-hover;
+            text-decoration-thickness: 2px;
+        }
+    }
+
+    &.completed {
+        color: $text-muted;
+        text-decoration: line-through;
+        opacity: 0.7;
+    }
+
+    &:focus-visible {
+        outline: 3px solid $focus-color;
+        outline-offset: 2px;
+    }
+}
+
 // Description editor shown below a task ("Add description" from the task menu,
 // or the eye toggle). It opens collapsed at 100px, and expands to a comfortable
 // 400px editing height via the expand button. The native drag handle is hidden
@@ -1101,47 +1157,23 @@ body {
     }
 }
 
-.description-toggle-btn {
-    color: $primary-color !important;
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover:not(:disabled) {
-            background-color: rgba($primary-color, 0.15);
-        }
-    }
-}
-
-// Decorative "has description" quote icon at the start of a task row. It keeps
-// the primary color but is no longer a button — toggling the description is now
-// done through the full-width single-line chip below the task, so this icon is
-// purely informational. Padding matches `.icon-btn` so the row doesn't shift.
-.description-indicator {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 8px;
-    color: $primary-color;
-    user-select: none;
-    cursor: default;
-}
-
 // Full-width, single-line preview of a task's description, shown below the task
 // while the editor is closed (clicking it opens the editor). It is the
 // collapsed state of the description, so the chip and the editor never appear
 // together. The text stays on one line: when it overflows, an ellipsis ("...")
-// appears at the right end and a soft fade (the "inside shadow") dims the right
-// corner to hint there's more to read. The text color (`$text-muted`) is
-// lighter than the task title (`$text-color`) so the description reads as
-// secondary. It has no border — just a quiet tint — and is tucked flush against
-// the task row above.
+// appears at the right end to hint there's more to read. The text color
+// (`$text-muted`) is lighter than the task title (`$text-color`) so the
+// description reads as secondary. It has no border — just a quiet tint — and is
+// tucked flush against the task row above.
 .todo-description-chip {
     display: flex;
+    width: 200px;
     align-items: center;
     box-sizing: border-box;
-    margin: 2px 0px 0px 0px;
+    margin-left: 26px;
     padding: 3px 4px 3px 8px;
-    border: none;
-    border-radius: 0px 0px 6px 6px;
+    border: 0.5px solid $border-color;
+    border-radius: 6px;
     background-color: $bg-color;
     color: $text-muted;
     font-size: 0.78rem;
@@ -1159,19 +1191,6 @@ body {
         overflow: hidden;
         text-overflow: ellipsis;
         padding-right: 4px;
-    }
-
-    // Inset shadow at the right corner — a soft fade matching the chip's own
-    // background so the truncated text reads as dissolving into the button.
-    // Rendered only while the text actually overflows.
-    &__fade {
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        width: 22px;
-        background: linear-gradient(to right, rgba($primary-color, 0), rgba($primary-color, 0.08));
-        pointer-events: none;
     }
 
     @media (hover: hover) and (pointer: fine) {
@@ -1265,13 +1284,13 @@ body {
 }
 
 .icon-btn {
-    background-color: $card-bg;
-    border: 1px solid $border-color;
+    background-color: transparent;
+    border: 0.5px solid $border-color;
     color: $text-muted;
     user-select: none;
     padding: 8px;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 6px;
     transition: all $transition-speed;
     display: flex;
     align-items: center;
@@ -1378,6 +1397,8 @@ body {
 
 .reorder-ghost {
     position: fixed;
+    display: flex;
+    align-items: center;
     z-index: 10000001;
     pointer-events: none;
     transform: translate(-50%, -50%);
@@ -1386,7 +1407,7 @@ body {
     border-radius: $border-radius;
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
     padding: 6px 10px;
-    min-width: 120px;
+    min-width: 220px;
 }
 
 // Tab list options (reorder dropdown)
@@ -1478,6 +1499,7 @@ body {
     border: none;
     text-align: left;
     padding: 0;
+    height: stretch;
     cursor: pointer;
 
     &:hover {
@@ -1626,7 +1648,8 @@ body {
 
     .modal-actions {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
+        justify-content: center;
         align-items: center;
         gap: 10px;
         margin-top: 10px;
@@ -1907,6 +1930,18 @@ body {
     border-bottom: 1px solid $border-color;
     font-size: 0.9rem;
     font-weight: 600;
+
+    // The task title shown instead of a generic "Preview" label. Takes the
+    // header's free width (flex: 1) so justify-content: space-between still
+    // pins the close button right, and truncates long titles with an ellipsis
+    // (full title is available via the title attribute / tooltip).
+    .markdown-preview-title {
+        flex: 1;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 }
 
 // ============================================================================

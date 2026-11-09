@@ -5,6 +5,20 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useDropdownFlip } from '../../hooks';
 
+// Returns the URL when the description is EXACTLY one link — a bare URL
+// (https://...), a markdown autolink (<https://...>), or an inline markdown
+// link ([label](https://...)). Anything else (other text, extra links, or an
+// empty description) returns null so the task keeps its normal editable
+// title. Only http(s) is recognised, which is what copy-URL produces.
+const getLinkOnlyUrl = (description: string): string | null => {
+  const trimmed = description.trim();
+  const autolink = /^<((?:https?):\/\/[^\s<>]+)>$/.exec(trimmed);
+  if (autolink) return autolink[1];
+  const inlineLink = /^\[[^\]]*\]\(((?:https?):\/\/[^\s)]+)\)$/.exec(trimmed);
+  if (inlineLink) return inlineLink[1];
+  return /^(?:https?):\/\/[^\s<>]+$/.test(trimmed) ? trimmed : null;
+};
+
 export const TodoItem: React.FC<TodoItemProps> = ({
   item,
   showCheckboxes,
@@ -29,6 +43,10 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   const [descriptionCopied, setDescriptionCopied] = useState(false);
   const [descriptionOpen, setDescriptionOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  // While the user types a name into a link-only task's (empty) title, keep
+  // the editable input instead of swapping to the link on the first character,
+  // which would drop focus mid-typing. Cleared on blur.
+  const [titleEditing, setTitleEditing] = useState(false);
   const [descriptionScrollable, setDescriptionScrollable] = useState(false);
   const [descriptionTruncated, setDescriptionTruncated] = useState(false);
   const previewDialogRef = useRef<HTMLDialogElement | null>(null);
@@ -167,6 +185,16 @@ export const TodoItem: React.FC<TodoItemProps> = ({
 
   const hasDescription = Boolean(item.description && item.description.trim());
 
+  // When the whole description is a single link, the title becomes a pure
+  // primary-colored link (see .todo-title-link) that opens the URL in a new
+  // tab. It stays an editable input while the description editor is open (the
+  // rename path via the "Show description" button), while the title is empty,
+  // and while it is actively being typed (titleEditing).
+  const descriptionLinkUrl = getLinkOnlyUrl(item.description);
+  const showLinkTitle = Boolean(
+    descriptionLinkUrl && !descriptionOpen && !titleEditing && item.title.trim()
+  );
+
   const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onUpdateTodo(item.id, () => ({ description: e.target.value }));
   };
@@ -301,17 +329,35 @@ when user clears the title, its okay to remove the task automatically when he cl
           />
         )}
 
-        <input
-          id={`input-${item.id}`}
-          ref={inputRef}
-          type="text"
-          className={`todo-title-input ${item.completed ? 'completed' : ''}`}
-          value={item.title}
-          placeholder="Task name..."
-          onChange={handleTitleChange}
-          onKeyDown={handleTitleKeyDown}
-          onBlur={handleTitleBlur}
-        />
+        {showLinkTitle ? (
+          <div className="todo-title-link-wrap">
+            <a
+              className={`todo-title-link${item.completed ? ' completed' : ''}`}
+              href={descriptionLinkUrl ?? '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`Open ${descriptionLinkUrl} in a new tab`}
+            >
+              {item.title}
+            </a>
+          </div>
+        ) : (
+          <input
+            id={`input-${item.id}`}
+            ref={inputRef}
+            type="text"
+            className={`todo-title-input ${item.completed ? 'completed' : ''}`}
+            value={item.title}
+            placeholder="Task name..."
+            onChange={handleTitleChange}
+            onKeyDown={handleTitleKeyDown}
+            onFocus={() => setTitleEditing(true)}
+            onBlur={() => {
+              setTitleEditing(false);
+              handleTitleBlur();
+            }}
+          />
+        )}
 
         {hasDescription && (
           <button
@@ -374,8 +420,10 @@ when user clears the title, its okay to remove the task automatically when he cl
       </div>
 
       {/* The chip is the collapsed state and the editor is the open state, so
-          only one is ever visible. Clicking the chip opens the editor. */}
-      {hasDescription && !descriptionOpen && (
+          only one is ever visible. Clicking the chip opens the editor. (It is
+          skipped for link-only tasks — their primary/underlined title already
+          signals the linked description, and opening it is the quote button.) */}
+      {hasDescription && !descriptionOpen && !descriptionLinkUrl && (
         <button
           type="button"
           className="todo-description-chip"
@@ -396,8 +444,11 @@ when user clears the title, its okay to remove the task automatically when he cl
         <div className="todo-description-wrap">
           <dialog ref={previewDialogRef} className="markdown-preview-dialog">
             <div className="markdown-preview-header">
-              {/* TODO: #3 show task title here instead of Preview */}
-              <span>Preview</span>
+              {/* Task title naming the preview — truncated with an ellipsis if
+                  it's long, so the close button always stays in place. */}
+              <span className="markdown-preview-title" title={item.title}>
+                {item.title || 'Preview'}
+              </span>
 
               <form method="dialog">
                 <button
