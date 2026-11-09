@@ -734,17 +734,17 @@ body {
 
     // Tint each hierarchy level's header to match its colored left border, so
     // the depth is easy to pick out even when just scanning the headers.
-    &.depth-1>.category-header {
-        background-color: #292E3A;
-    }
+    // &.depth-1>.category-header {
+    //     background-color: #292E3A;
+    // }
 
-    &.depth-2>.category-header {
-        background-color: #272C43;
-    }
+    // &.depth-2>.category-header {
+    //     background-color: #272C43;
+    // }
 
-    &.depth-3>.category-header {
-        background-color: #1F323D;
-    }
+    // &.depth-3>.category-header {
+    //     background-color: #1F323D;
+    // }
 }
 
 // On mobile, pin nested category headers BELOW the sticky parent header so the
@@ -780,6 +780,9 @@ body {
     // background-color: rgba($border-color, 0.2);
     // Round only the top corners to match the `.category-card` radius, so the
     // header does not show sharp square corners poking past the card edge.
+    background: rgba(255, 255, 255, 0);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border-radius: $border-radius;
     display: flex;
     justify-content: space-between;
@@ -1284,7 +1287,9 @@ body {
 }
 
 .icon-btn {
-    background-color: transparent;
+    background: rgba(255, 255, 255, 0);
+    backdrop-filter: blur(6.5px);
+    -webkit-backdrop-filter: blur(6.5px);
     border: 0.5px solid $border-color;
     color: $text-muted;
     user-select: none;
