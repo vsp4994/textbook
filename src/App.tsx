@@ -74,6 +74,11 @@ const AppContent = ({ document }: AppContentProps) => {
   const [tabMenuPos, setTabMenuPos] = useState({ top: 0, left: 0 });
   const tabOptionsRef = useRef<HTMLButtonElement>(null);
   const tabMenuRef = useRef<HTMLDivElement | null>(null);
+  const tabListRef = useRef<HTMLDivElement | null>(null);
+
+  // Direction-aware slide for the mobile list switch — see the comparison below.
+  const [prevActiveListId, setPrevActiveListId] = useState(activeListId);
+  const [slideFrom, setSlideFrom] = useState<'left' | 'right'>('right');
 
   // Floating toast (success/error/info) shown transiently at the bottom of the
   // view — e.g. the "Task completed" confirmation when a task is checked from
@@ -140,6 +145,28 @@ const AppContent = ({ document }: AppContentProps) => {
     return () => window.document.removeEventListener('click', handleDropdownClickOutside, true);
   }, []);
 
+  // Keep the active tab pill visible in the horizontally scrollable tab strip.
+  // Runs only when the active list changes (tab tap or finger swipe) — including
+  // the initial load — so the user always sees the current list in the nav bar.
+  // It compares viewport-relative rects (correct regardless of offsetParent)
+  // and scrolls ONLY the strip (never the page), and only when the active pill
+  // is actually cut off, so manual left/right touch scrolling of the strip is
+  // never interrupted.
+  useEffect(() => {
+    const tabList = tabListRef.current;
+    const activeTab = tabList?.querySelector<HTMLElement>('.tab-item.active');
+    if (!tabList || !activeTab) return;
+
+    const listRect = tabList.getBoundingClientRect();
+    const tabRect = activeTab.getBoundingClientRect();
+    const padding = 8; // breathing room, mirrors the strip's 8px gap
+    if (tabRect.left < listRect.left) {
+      tabList.scrollBy({ left: tabRect.left - listRect.left - padding, behavior: 'smooth' });
+    } else if (tabRect.right > listRect.right) {
+      tabList.scrollBy({ left: tabRect.right - listRect.right + padding, behavior: 'smooth' });
+    }
+  }, [activeListId]);
+
   const getActiveList = (): TodoList | undefined =>
     doc?.lists.find((list) => list.id === activeListId);
 
@@ -161,6 +188,23 @@ const AppContent = ({ document }: AppContentProps) => {
   // (reorder) button are only useful once there's a list to act on, so both
   // are hidden until the first list is created.
   const hasLists = doc ? doc.lists.length > 0 : false;
+
+  // Decide which side the entering list view slides in from. Nav order is
+  // Starred, then each list in order — the same order used by the horizontal
+  // swipe navigation — so a finger swipe RIGHT (to the previous list) makes the
+  // view appear to come from the LEFT, and a swipe LEFT (next list) from the
+  // RIGHT. Uses React's render-time "previous value" pattern (sets state during
+  // render, guarded by the changed-id comparison) so the modifier class is on
+  // the wrapper from its very first paint and the CSS animation starts on the
+  // correct side. Edge cases (initial load where prevIndex is -1, deleted list,
+  // newly added list) fall back to the default "from the right" slide.
+  if (activeListId !== prevActiveListId) {
+    const navIds = [STARRED_LIST_ID, ...(doc?.lists.map((list) => list.id) ?? [])];
+    const prevIndex = navIds.indexOf(prevActiveListId);
+    const nextIndex = navIds.indexOf(activeListId);
+    setSlideFrom(nextIndex >= prevIndex ? 'right' : 'left');
+    setPrevActiveListId(activeListId);
+  }
 
   const handleStarredClick = () => {
     setOpenDropdownId(null);
@@ -663,7 +707,7 @@ const AppContent = ({ document }: AppContentProps) => {
 
       <main ref={appBodyRef} className="app-body">
         {starredView ? (
-          <div className="starred-wrapper">
+          <div className={`starred-wrapper${slideFrom === 'left' ? ' slide-from-left' : ''}`}>
             <StarredList
               entries={starredEntries}
               onOpenList={handleTabClick}
@@ -671,7 +715,10 @@ const AppContent = ({ document }: AppContentProps) => {
             />
           </div>
         ) : activeList ? (
-          <div key={activeListId} className="list-wrapper">
+          <div
+            key={activeListId}
+            className={`list-wrapper${slideFrom === 'left' ? ' slide-from-left' : ''}`}
+          >
             <div className="list-header-row">
               <span className="list-title">{activeList.title}</span>
               <button className="btn btn-outline" onClick={handleAddRootCategory} type="button">
@@ -712,7 +759,7 @@ const AppContent = ({ document }: AppContentProps) => {
           </button>
         )}
 
-        <div className="tab-list">
+        <div className="tab-list" ref={tabListRef}>
           {doc?.lists.map((list, index) => (
             <button
               key={list.id}

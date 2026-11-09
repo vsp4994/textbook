@@ -17,6 +17,47 @@ $focus-color: #60a5fa;
 $border-radius: 6px;
 $transition-speed: 0.2s;
 
+@media (max-width: 600px) {
+
+    .list-wrapper,
+    .starred-wrapper {
+        animation: list-slide-in 200ms ease-in;
+    }
+
+    // Direction-aware variant: enter from the LEFT (finger swipe to the right
+    // / moving to a "previous" list). Only overrides the keyframes name — the
+    // 300ms ease-in timing comes from the base rule above.
+    .list-wrapper.slide-from-left,
+    .starred-wrapper.slide-from-left {
+        animation-name: list-slide-in-from-left;
+    }
+
+    @keyframes list-slide-in {
+        from {
+            opacity: 0.3;
+            transform: translateX(30px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes list-slide-in-from-left {
+        from {
+            opacity: 0.3;
+            transform: translateX(-30px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+}
+
+
 // Mixins
 @mixin focus-outline {
     &:focus-visible {
@@ -384,26 +425,6 @@ body {
     @media (min-width: 601px) {
         flex: 1 1 0;
         min-height: 0;
-    }
-
-    @media (max-width: 600px) {
-
-        .list-wrapper,
-        .starred-wrapper {
-            animation: list-slide-in 400ms ease-out;
-        }
-
-        @keyframes list-slide-in {
-            from {
-                opacity: 0.5;
-                transform: translateX(16px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
     }
 }
 
