@@ -753,6 +753,21 @@ body {
         border-left: 2px solid #16a34a;
     }
 
+    // When a category's settings dropdown is open, raise THAT card's header so
+    // its menu paints above the task rows. This is needed at EVERY breakpoint:
+    // - on mobile, above the other sticky headers (a lower category's sticky
+    //   header, later in the DOM with the same/higher z-index, would otherwise
+    //   cover the open menu as you scroll);
+    // - on the web view, because `.category-header` forms its own stacking
+    //   context (`isolation: isolate` + backdrop-filter), so the menu's large
+    //   z-index is trapped inside it — without raising the header, the task
+    //   rows further down the DOM paint on top of the open menu.
+    &.dropdown-open {
+        >.category-header {
+            z-index: 9999 !important;
+        }
+    }
+
     // Tint each hierarchy level's header to match its colored left border, so
     // the depth is easy to pick out even when just scanning the headers.
     // &.depth-1>.category-header {
@@ -785,14 +800,6 @@ body {
     .category-card.depth-3>.category-header {
         top: 102px;
         z-index: 18;
-    }
-
-    // When a category's settings dropdown is open, raise THAT card's header
-    // above every other sticky header. Otherwise a lower category's sticky
-    // header (later in the DOM, same/higher z-index) could paint over and hide
-    // the open dropdown menu as you scroll.
-    .category-card.dropdown-open>.category-header {
-        z-index: 9999 !important;
     }
 }
 

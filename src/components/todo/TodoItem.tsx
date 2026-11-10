@@ -217,8 +217,22 @@ export const TodoItem: React.FC<TodoItemProps> = ({
     setDescriptionOpen(true);
   };
 
-  const handleDescriptionBlur = () => {
+  const handleDescriptionBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
     if (previewDialogRef.current?.open) return;
+    // Focusing the title to rename the task must not close the editor. For
+    // pure-link tasks the title is only editable while the description stays
+    // open (otherwise the title collapses back into the link), so keep the
+    // editor open when focus moves into the title input — recognized via
+    // relatedTarget, the element that just received focus. Other tasks keep
+    // the existing click-away behavior unchanged.
+    const nextFocusTarget = e.relatedTarget as Node | null;
+    if (
+      descriptionLinkUrl &&
+      nextFocusTarget &&
+      inputRef.current?.contains(nextFocusTarget)
+    ) {
+      return;
+    }
     // The blur event fires both when the user clicks elsewhere in the app
     // (click-away) and when they switch to another app/window. Only the former
     // should close the editor: when the window itself loses focus,
