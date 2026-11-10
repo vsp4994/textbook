@@ -1,7 +1,8 @@
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Category as CategoryComponent, EmptyState, Icon, Modal, ReorderList, StarredList, Toast, TodoItem, type ToastSeverity } from './components';
 import { useDocument, type UseDocumentReturn } from './hooks/useDocument';
-import { useHorizontalSwipe, useMediaQuery, useTextPrompt, WEB_VIEW_QUERY } from './hooks';
+import { useHorizontalSwipe, useIsMobileDevice, useTextPrompt } from './hooks';
+import { useKeyboardShortcuts } from './keyboard';
 import { DriveSyncProvider } from './sync/DriveSyncContext';
 import { MAX_DEPTH, STARRED_LIST_ID, type Category, type TodoItemType, type TodoList } from './types';
 import type { ModalConfig } from './components/types/todoItem.types';
@@ -654,13 +655,15 @@ const AppContent = ({ document }: AppContentProps) => {
     };
   }, [tabMenuOpen]);
 
-  // --- Horizontal swipe navigation between lists (mobile only) ---
+  // --- Horizontal swipe navigation between lists (mobile devices only) ---
   // Swiping a finger left/right across the content opens the next/previous
   // list, following the same left-to-right order as the tabs (Starred, then
   // each list). Swipes that start on a text input/textarea are ignored so
   // editing is never interrupted; vertical scrolling is untouched because a
-  // swipe only registers when horizontal travel clearly dominates.
-  const isMobileView = !useMediaQuery(WEB_VIEW_QUERY);
+  // swipe only registers when horizontal travel clearly dominates. The gesture
+  // is gated on the *device* (a real touch/mobile device) rather than the
+  // viewport width, so a narrow desktop window never enables it.
+  const isMobileDevice = useIsMobileDevice();
   const openAdjacentList = (direction: -1 | 1) => {
     if (!doc || doc.lists.length === 0) return;
     const navIds = [STARRED_LIST_ID, ...doc.lists.map((list) => list.id)];
@@ -672,7 +675,7 @@ const AppContent = ({ document }: AppContentProps) => {
   const appBodyRef = useHorizontalSwipe({
     enabled:
       !isLoading &&
-      isMobileView &&
+      isMobileDevice &&
       hasLists &&
       !modalConfig.isOpen &&
       !tabMenuOpen &&
@@ -683,6 +686,25 @@ const AppContent = ({ document }: AppContentProps) => {
       (target instanceof Element ? target : null)?.closest(
         'textarea, select, [contenteditable="true"], input:not(.todo-title-input)'
       ) != null,
+  });
+
+  // --- Keyboard shortcuts: switch lists on the web view (desktop devices) ---
+  // ⌥⌘← / ⌥⌘→ (Alt+Meta+ArrowLeft/Right) opens the previous/next list, mirroring
+  // the mobile swipe above so both inputs share the same nav order. Active only
+  // on web (non-mobile) devices; the shortcut registry lives in `src/keyboard/`
+  // so more shortcuts can be added there without touching App.
+  useKeyboardShortcuts({
+    handlers: {
+      'navigation.nextList': () => openAdjacentList(1),
+      'navigation.previousList': () => openAdjacentList(-1),
+    },
+    enabled:
+      !isLoading &&
+      !isMobileDevice &&
+      hasLists &&
+      !modalConfig.isOpen &&
+      !tabMenuOpen &&
+      !openDropdownId,
   });
 
   if (isLoading) {
