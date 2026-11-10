@@ -1,0 +1,27 @@
+// Mobile Chrome can render `backdrop-filter` as a no-op when the element's
+// own background is fully transparent. Give the glass surfaces a translucent
+// dark tint first; the tint also remains as a graceful fallback when blur is
+// unavailable or disabled by the browser.
+@media (max-width: 600px) {
+    .category-header {
+        background-color: rgba(15, 23, 42, 0.78);
+        -webkit-backdrop-filter: blur(12px) saturate(150%);
+        backdrop-filter: blur(12px) saturate(150%);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background-clip: padding-box;
+    }
+
+    .icon-btn {
+        background-color: rgba(30, 41, 59, 0.72);
+        -webkit-backdrop-filter: blur(10px) saturate(150%);
+        backdrop-filter: blur(10px) saturate(150%);
+        border-color: rgba(148, 163, 184, 0.3);
+        background-clip: padding-box;
+    }
+
+    // Preserve the selected/starred button treatment over the shared glass tint.
+    .icon-btn.star-icon-btn.is-starred {
+        background-color: rgba(218, 136, 30, 0.22);
+        border-color: rgba(218, 136, 30, 0.55);
+    }
+}
