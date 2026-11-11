@@ -608,7 +608,7 @@ when user clears the title, its okay to remove the task automatically when he cl
           message={`Detected ${pendingPaste.tasks.length} tasks. How would you like to paste them?`}
           onConfirm={handlePasteAsTasks}
           actions={
-            <>
+            <div style={{ display: 'flex', gap: '0.5rem', flexDirection: 'column', marginTop: '1rem' }}>
               <button
                 type="button"
                 className="btn btn-primary"
@@ -632,7 +632,7 @@ when user clears the title, its okay to remove the task automatically when he cl
               >
                 Cancel
               </button>
-            </>
+            </div>
           }
         />,
         document.body
