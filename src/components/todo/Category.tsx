@@ -214,8 +214,15 @@ export const Category: React.FC<CategoryProps> = ({
       <div className="category-header">
         <div className="category-meta">
           <button className="category-header-title-button" onClick={handleCategoryTitleClick} type='button'>
-            {/* TODO: #2 hide main category icon chevron in web view as no functionalty to open close in the web view. */}
-            <Icon name={effectiveCollapsed ? "ri-arrow-right-s-line" : "ri-arrow-down-s-line"} className="fold-icon" />
+            {/* Main (depth-1) categories are always open in the web view
+                (forceOpenOnWeb), so there is nothing to fold — hide the chevron
+                there. Deeper categories still fold in the web view and keep it. */}
+            {!forceOpenOnWeb && (
+              <Icon
+                name={effectiveCollapsed ? "ri-arrow-right-s-line" : "ri-arrow-down-s-line"}
+                className="fold-icon"
+              />
+            )}
             <span className="category-title">{category.title}</span>
             {hasStarred && <Icon name="ri-star-fill" className="category-star-icon" />}
             {remainingIndicator}

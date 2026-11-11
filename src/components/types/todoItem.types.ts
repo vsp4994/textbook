@@ -22,4 +22,9 @@ export interface TodoItemProps {
   onDeleteTodo: (todoId: string) => void;
   onAddTodoAfter: (categoryId: string, todoId: string) => void;
   setOpenDropdownId: (id: string | null) => void;
+  onPasteTodoLines: (
+    todoId: string,
+    categoryId: string,
+    titles: string[]
+  ) => void;
 }

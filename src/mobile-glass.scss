@@ -4,18 +4,24 @@
 // unavailable or disabled by the browser.
 @media (max-width: 600px) {
     .category-header {
-        background-color: rgba(15, 23, 42, 0.78);
-        -webkit-backdrop-filter: blur(12px) saturate(150%);
-        backdrop-filter: blur(12px) saturate(150%);
-        border: 1px solid rgba(148, 163, 184, 0.18);
+        background-color: rgba(15, 23, 42, 0.618);
+        -webkit-backdrop-filter: blur(5px) saturate(120%);
+        backdrop-filter: blur(5px) saturate(120%);
         background-clip: padding-box;
+    }
+
+    // Top-level (depth-1) category headers get their own amber tint so they
+    // stand out from the shared glass background. The `.depth-1` class sits on
+    // the parent `.category-card`, not on `.category-header` itself, so the
+    // child selector is required to actually match.
+    .category-card.depth-1 > .category-header {
+        background-color: rgba(218, 137, 30, 0.189);
     }
 
     .icon-btn {
         background-color: rgba(30, 41, 59, 0.72);
-        -webkit-backdrop-filter: blur(10px) saturate(150%);
-        backdrop-filter: blur(10px) saturate(150%);
-        border-color: rgba(148, 163, 184, 0.3);
+        -webkit-backdrop-filter: blur(5px) saturate(100%);
+        backdrop-filter: blur(5px) saturate(100%);
         background-clip: padding-box;
     }
 

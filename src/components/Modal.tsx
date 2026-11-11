@@ -13,6 +13,7 @@ export interface ModalProps {
   children?: React.ReactNode;
   /** When true, disables the confirm button (e.g. an empty required input). */
   confirmDisabled?: boolean;
+  actions?: React.ReactNode;
 }
 
 /**
@@ -39,6 +40,7 @@ export const Modal: React.FC<ModalProps> = ({
   type = 'info',
   children,
   confirmDisabled = false,
+  actions,
 }) => {
   if (!isOpen) return null;
 
@@ -58,20 +60,24 @@ export const Modal: React.FC<ModalProps> = ({
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <h3>{title}</h3>
         {children ?? <p>{message}</p>}
-        <div className="modal-actions">
-          <button className="btn btn-secondary" onClick={onClose}>
-            {cancelLabel}
-          </button>
-          <button
-            className={getButtonClass()}
-            disabled={confirmDisabled}
-            onClick={() => {
-              onConfirm();
-              onClose();
-            }}
-          >
-            {confirmLabel}
-          </button>
+        <div className={`modal-actions${actions ? ' modal-actions--custom' : ''}`}>
+          {actions ?? (
+            <>
+              <button className="btn btn-secondary" onClick={onClose}>
+                {cancelLabel}
+              </button>
+              <button
+                className={getButtonClass()}
+                disabled={confirmDisabled}
+                onClick={() => {
+                  onConfirm();
+                  onClose();
+                }}
+              >
+                {confirmLabel}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

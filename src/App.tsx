@@ -482,6 +482,53 @@ const AppContent = ({ document }: AppContentProps) => {
     });
   };
 
+  const handlePasteTodoLines = (
+    todoId: string,
+    categoryId: string,
+    titles: string[]
+  ) => {
+    if (!doc || titles.length < 2) return;
+
+    const newItems: TodoItemType[] = titles.slice(1).map((title) => ({
+      id: generateUUID(),
+      title,
+      description: '',
+      completed: false,
+      starred: false,
+    }));
+
+    updateDocument({
+      ...doc,
+      lists: doc.lists.map((list) =>
+        inActiveList(list.id)
+          ? {
+            ...list,
+            categories: updateCategoriesRecursive(
+              list.categories,
+              categoryId,
+              (category) => {
+                const index = category.items.findIndex(
+                  (item) => item.id === todoId
+                );
+
+                if (index === -1) return {};
+
+                return {
+                  items: [
+                    ...category.items.slice(0, index),
+                    ...[...newItems].reverse(),
+                    { ...category.items[index], title: titles[0] },
+                    ...category.items.slice(index + 1),
+                  ],
+                };
+              }
+            ),
+          }
+          : list
+      ),
+    });
+  };
+
   const renderTodoItem = (
     item: TodoItemType,
     showCheckboxes: boolean,
@@ -501,6 +548,7 @@ const AppContent = ({ document }: AppContentProps) => {
       onDeleteTodo={handleDeleteTodo}
       onAddTodoAfter={handleAddTodoAfter}
       setOpenDropdownId={setOpenDropdownId}
+      onPasteTodoLines={handlePasteTodoLines}
     />
   );
 

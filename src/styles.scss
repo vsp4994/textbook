@@ -16,28 +16,31 @@ $focus-color: #60a5fa;
 // Spacing & Borders
 $border-radius: 6px;
 $transition-speed: 0.2s;
+
 .category-header,
 .icon-btn {
-  background: rgba(15, 23, 42, 0.42);
-  border: 1px solid rgba(148, 163, 184, 0.26);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  color: $text-muted;
-  position: relative;
-  isolation: isolate;
+    background: rgba(15, 23, 42, 0.42);
+    // border: 1px solid rgba(148, 163, 184, 0.26);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    color: $text-muted;
+    position: relative;
+    isolation: isolate;
 
-  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    background: rgba(15, 23, 42, 0.38);
-    backdrop-filter: blur(10px) saturate(140%);
-    -webkit-backdrop-filter: blur(10px) saturate(140%);
-  }
+    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        background: rgba(15, 23, 42, 0.38);
+        backdrop-filter: blur(10px) saturate(140%);
+        -webkit-backdrop-filter: blur(10px) saturate(140%);
+    }
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .category-header,
-  .icon-btn {
-    background: rgba(15, 23, 42, 0.8);
-  }
+
+    .category-header,
+    .icon-btn {
+        background: rgba(15, 23, 42, 0.8);
+    }
 }
+
 @media (max-width: 600px) {
 
     .list-wrapper,
@@ -895,6 +898,17 @@ body {
     }
 }
 
+// Main (depth-1) category headers in the web view render WITHOUT a fold chevron
+// (top-level categories are always open there — see forceOpenOnWeb). Give their
+// title the same left inset the chevron would have occupied, so depth-1 titles
+// align with the depth-2/3 headers that still show the chevron. 28px = the 1rem
+// (16px) glyph + its 4px inline margins + the button's 4px flex gap.
+@media (min-width: 601px) {
+    .category-card.depth-1 > .category-header .category-title {
+        margin-left: 28px;
+    }
+}
+
 .category-body {
     // Always mounted (rather than conditionally rendered) so open/close can be
     // animated. Height collapse is TWO nested grid tracks, both animating
@@ -1683,6 +1697,15 @@ body {
 
         button {
             padding-inline: 40px;
+        }
+    }
+
+    &.modal-actions--custom {
+        flex-wrap: wrap;
+
+        button {
+            flex: 1 1 110px;
+            padding-inline: 12px;
         }
     }
 }

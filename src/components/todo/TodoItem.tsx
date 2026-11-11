@@ -4,6 +4,8 @@ import type { TodoItemProps } from '../types/todoItem.types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useDropdownFlip } from '../../hooks';
+import { createPortal } from 'react-dom';
+import { Modal } from '../Modal';
 
 // Returns the URL when the description is EXACTLY one link — a bare URL
 // (https://...), a markdown autolink (<https://...>), or an inline markdown
@@ -31,6 +33,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   onDeleteTodo,
   onAddTodoAfter,
   setOpenDropdownId,
+  onPasteTodoLines,
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
@@ -49,6 +52,10 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   const [titleEditing, setTitleEditing] = useState(false);
   const [descriptionScrollable, setDescriptionScrollable] = useState(false);
   const [descriptionTruncated, setDescriptionTruncated] = useState(false);
+  const [pendingPaste, setPendingPaste] = useState<{
+    tasks: string[];
+    singleLine: string;
+  } | null>(null);
   const previewDialogRef = useRef<HTMLDialogElement | null>(null);
 
   // Opens the task 3-dot menu upward (instead of downward) when it would
@@ -165,6 +172,61 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onUpdateTodo(item.id, () => ({ title: e.target.value }));
   };
+  const handleTitlePaste = (
+    e: React.ClipboardEvent<HTMLInputElement>
+  ) => {
+    const pastedText = e.clipboardData.getData('text/plain');
+
+    const pastedTasks = pastedText
+      .split(/\r\n|\r|\n/)
+      .map((title) => title.trim())
+      .filter(Boolean);
+
+    if (!categoryId || pastedTasks.length < 2) return;
+
+    e.preventDefault();
+
+    const start = e.currentTarget.selectionStart ?? item.title.length;
+    const end = e.currentTarget.selectionEnd ?? start;
+
+    const combinedText =
+      item.title.slice(0, start) +
+      pastedText +
+      item.title.slice(end);
+
+    setPendingPaste({
+      tasks: combinedText
+        .split(/\r\n|\r|\n/)
+        .map((title) => title.trim())
+        .filter(Boolean),
+      singleLine: combinedText.replace(/[\r\n]+/g, ' ').trim(),
+    });
+  };
+
+  const handlePasteAsTasks = () => {
+    if (!pendingPaste || !categoryId) return;
+
+    onPasteTodoLines(item.id, categoryId, pendingPaste.tasks);
+    setPendingPaste(null);
+  };
+
+  const handlePasteAsOneLine = () => {
+    if (!pendingPaste) return;
+
+    onUpdateTodo(item.id, () => ({
+      title: pendingPaste.singleLine,
+    }));
+
+    setPendingPaste(null);
+  };
+
+  const handlePasteCancel = () => {
+    setPendingPaste(null);
+
+    if (!item.title.trim()) {
+      onDeleteTodo(item.id);
+    }
+  };
 
   const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -178,6 +240,8 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   };
 
   const handleTitleBlur = () => {
+    if (pendingPaste) return;
+
     if (!item.title.trim()) {
       onDeleteTodo(item.id);
     }
@@ -370,6 +434,7 @@ when user clears the title, its okay to remove the task automatically when he cl
               setTitleEditing(false);
               handleTitleBlur();
             }}
+            onPaste={handleTitlePaste}
           />
         )}
 
@@ -534,6 +599,43 @@ when user clears the title, its okay to remove the task automatically when he cl
             </button>
           </div>
         </div>
+      )}
+      {pendingPaste && createPortal(
+        <Modal
+          isOpen
+          onClose={handlePasteCancel}
+          title="Paste multiple tasks?"
+          message={`Detected ${pendingPaste.tasks.length} tasks. How would you like to paste them?`}
+          onConfirm={handlePasteAsTasks}
+          actions={
+            <>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handlePasteAsTasks}
+              >
+                Add {pendingPaste.tasks.length} tasks
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handlePasteAsOneLine}
+              >
+                Paste as one line
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handlePasteCancel}
+              >
+                Cancel
+              </button>
+            </>
+          }
+        />,
+        document.body
       )}
     </div>
   );
