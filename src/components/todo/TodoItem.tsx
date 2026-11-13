@@ -141,6 +141,13 @@ export const TodoItem: React.FC<TodoItemProps> = ({
     return () => ro.disconnect();
   }, [item.description]);
 
+  // A task counts as a real task once it has a description. The blank
+  // placeholders created by "Add task" (empty title AND empty description) are
+  // the only ones auto-deleted when left blank; a task carrying a description
+  // must survive a blank title so clearing the title to retype it can't
+  // destroy the task (see handleTitleBlur / handleTitleKeyDown / handlePasteCancel).
+  const hasDescription = Boolean(item.description && item.description.trim());
+
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onUpdateTodo(item.id, () => ({ completed: e.target.checked }));
   };
@@ -199,7 +206,9 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   const handlePasteCancel = () => {
     setPendingPaste(null);
 
-    if (!item.title.trim()) {
+    // Only the blank placeholder (no description) is removed on cancel — a task
+    // with a description must not be lost just because its title is blank.
+    if (!item.title.trim() && !hasDescription) {
       onDeleteTodo(item.id);
     }
   };
@@ -208,7 +217,12 @@ export const TodoItem: React.FC<TodoItemProps> = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (!item.title.trim()) {
-        onDeleteTodo(item.id);
+        // Pressing Enter on a blank title only removes the fresh empty
+        // placeholder; a task with a description is kept (no destructive
+        // delete, and no new task is inserted after an empty title).
+        if (!hasDescription) {
+          onDeleteTodo(item.id);
+        }
       } else {
         onAddTodoAfter(categoryId || '', item.id);
       }
@@ -218,12 +232,13 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   const handleTitleBlur = () => {
     if (pendingPaste) return;
 
-    if (!item.title.trim()) {
+    // Auto-remove only the blank placeholder that has no content. If the task
+    // has a description, a cleared title simply stays blank when the user
+    // clicks elsewhere — the task (and its description) must survive the edit.
+    if (!item.title.trim() && !hasDescription) {
       onDeleteTodo(item.id);
     }
   };
-
-  const hasDescription = Boolean(item.description && item.description.trim());
 
   // When the whole description is a single link, the title becomes a pure
   // primary-colored link (see .todo-title-link) that opens the URL in a new
@@ -234,6 +249,12 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   const showLinkTitle = Boolean(
     descriptionLinkUrl && !descriptionOpen && !titleEditing && item.title.trim()
   );
+
+  // When a task's title is cleared (it still carries a description), the input
+  // shows "Untitled" instead of the fresh-task hint, so it's clear the task
+  // still exists under an empty name rather than reading as a blank row.
+  const titlePlaceholder =
+    hasDescription && !item.title.trim() ? 'Untitled' : 'Task name...';
 
   const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onUpdateTodo(item.id, () => ({ description: e.target.value }));
@@ -370,9 +391,6 @@ export const TodoItem: React.FC<TodoItemProps> = ({
       ref={rootRef}
       className={`todo-item${descriptionOpen ? ' is-description-open' : ''}${hasDescription ? ' has-description' : ''}`}
     >
-      {/* FIXME: when user added a task with description. and again if user wants to change the title of the task, task is automatically gets deleted.
-if the title is empty, then the task is getting deleted automatically.
-when user clears the title, its okay to remove the task automatically when he clicked somewhere else in the screen. but not when that task have description. let me knpowif you have any question related to this issue.  */}
       <div className="todo-row">
         {showCheckboxes && (
           <input
@@ -402,7 +420,7 @@ when user clears the title, its okay to remove the task automatically when he cl
             type="text"
             className={`todo-title-input ${item.completed ? 'completed' : ''}`}
             value={item.title}
-            placeholder="Task name..."
+            placeholder={titlePlaceholder}
             onChange={handleTitleChange}
             onKeyDown={handleTitleKeyDown}
             onFocus={() => setTitleEditing(true)}
