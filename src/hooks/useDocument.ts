@@ -79,10 +79,25 @@ export const useDocument = (): UseDocumentReturn => {
       // activeListId — the synthetic id in use here is never persisted — so
       // without this guard the user would be yanked back to the last-visited
       // list after every edit.
-      const nextActiveListId =
-        activeListIdRef.current === STARRED_LIST_ID
-          ? STARRED_LIST_ID
-          : document.activeListId || document.lists[0]?.id || '';
+      const currentListId = activeListIdRef.current;
+
+      const currentListExists = document.lists.some(
+        (list) => list.id === currentListId
+      );
+
+      const savedListExists = document.lists.some(
+        (list) => list.id === document.activeListId
+      );
+
+      let nextActiveListId = document.lists[0]?.id ?? '';
+
+      if (savedListExists) {
+        nextActiveListId = document.activeListId;
+      }
+
+      if (currentListExists || currentListId === STARRED_LIST_ID) {
+        nextActiveListId = currentListId;
+      }
 
       updateActiveListId(nextActiveListId);
     },

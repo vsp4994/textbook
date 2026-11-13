@@ -24,7 +24,6 @@ const getLinkOnlyUrl = (description: string): string | null => {
 export const TodoItem: React.FC<TodoItemProps> = ({
   item,
   showCheckboxes,
-  sortCheckedToBottom,
   categoryId,
   focusInputId,
   setFocusInputId,
@@ -41,7 +40,6 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const copyTimerRef = useRef<number | null>(null);
   const descriptionCopyTimerRef = useRef<number | null>(null);
-  const prevCompletedRef = useRef(item.completed);
   const [copied, setCopied] = useState(false);
   const [descriptionCopied, setDescriptionCopied] = useState(false);
   const [descriptionOpen, setDescriptionOpen] = useState(false);
@@ -70,28 +68,6 @@ export const TodoItem: React.FC<TodoItemProps> = ({
       if (descriptionCopyTimerRef.current) window.clearTimeout(descriptionCopyTimerRef.current);
     };
   }, []);
-
-  // When "Show checked at bottom" is enabled and the user ticks a task, the
-  // item sinks to the bottom of its category. React reorders keyed DOM nodes,
-  // so the same element survives at its new position — after the re-render we
-  // smooth-scroll it back into view so the move reads as a glide.
-  useLayoutEffect(() => {
-    const wasChecked = prevCompletedRef.current;
-    prevCompletedRef.current = item.completed;
-
-    // Only the unchecked -> checked transition (with "checked at bottom" on)
-    // gets the glide. Already-checked items (initial mount, re-renders) and
-    // every uncheck are ignored.
-    if (item.completed && !wasChecked && sortCheckedToBottom) {
-      if (rootRef.current) {
-        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        rootRef.current.scrollIntoView({
-          behavior: reduceMotion ? 'auto' : 'smooth',
-          block: 'nearest',
-        });
-      }
-    }
-  }, [item.completed, sortCheckedToBottom]);
 
   useEffect(() => {
     if (focusInputId === item.id && inputRef.current) {
