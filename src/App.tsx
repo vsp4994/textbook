@@ -1,15 +1,16 @@
-import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Category as CategoryComponent, EmptyState, Icon, Modal, ReorderList, StarredList, Toast, TodoItem, type ToastSeverity } from './components';
 import { useDocument, type UseDocumentReturn } from './hooks/useDocument';
 import { useHorizontalSwipe, useIsMobileDevice, useTextPrompt } from './hooks';
 import { useKeyboardShortcuts } from './keyboard';
-import { DriveSyncProvider } from './sync/DriveSyncContext';
+import { DriveSyncProvider, useDriveSync } from './sync/DriveSyncContext';
 import { MAX_DEPTH, STARRED_LIST_ID, type Category, type TodoItemType, type TodoList } from './types';
 import type { ModalConfig } from './components/types/todoItem.types';
 import {
   clampCategoryTitle,
   clampListTitle,
   collectStarredItems,
+  countTodoItems,
   deleteCategoryRecursive,
   deleteCheckedTodoItems,
   deleteTodoItem,
@@ -189,6 +190,26 @@ const AppContent = ({ document }: AppContentProps) => {
   // (reorder) button are only useful once there's a list to act on, so both
   // are hidden until the first list is created.
   const hasLists = doc ? doc.lists.length > 0 : false;
+
+  // Developer-only diagnostics for the list-options menu footer. Visible when
+  // running the local dev server or when signed in as the maintainer, so it
+  // can be checked while developing without being exposed to other users.
+  const { currentUser } = useDriveSync();
+  const showDocDiagnostics =
+    import.meta.env.DEV || currentUser?.emailAddress === 'vsp4994@gmail.com';
+
+  // Size / JSON-line / task-count of the document backing the app. Recomputed
+  // only when `doc` changes (updates are immutable, so any mutation replaces
+  // `doc`). Pretty-printed so "lines" matches how a saved .json file looks.
+  const docDiagnostics = useMemo(() => {
+    if (!doc) return null;
+    const json = JSON.stringify(doc);
+    return {
+      sizeKb: (new Blob([json]).size / 1024).toFixed(2),
+      lines: JSON.stringify(doc, null, 2).split('\n').length,
+      tasks: countTodoItems(doc.lists),
+    };
+  }, [doc]);
 
   // Decide which side the entering list view slides in from. Nav order is
   // Starred, then each list in order — the same order used by the horizontal
@@ -863,7 +884,13 @@ const AppContent = ({ document }: AppContentProps) => {
               <div
                 ref={tabMenuRef}
                 className="tab-options-menu"
-                style={{ top: tabMenuPos.top, left: tabMenuPos.left }}
+                // The full-height list reads the menu's computed top through
+                // --tab-menu-top so its max-height can fill the viewport below.
+                style={{
+                  top: tabMenuPos.top,
+                  left: tabMenuPos.left,
+                  '--tab-menu-top': `${tabMenuPos.top}px`,
+                } as CSSProperties}
               >
                 <div className="tab-options-menu-footer">Drag to reorder lists</div>
                 {doc.lists.length === 0 ? (
@@ -911,6 +938,12 @@ const AppContent = ({ document }: AppContentProps) => {
                     className="tab-options-list"
                     itemClassName="tab-options-item"
                   />
+                )}
+
+                {showDocDiagnostics && docDiagnostics && (
+                  <div className="tab-options-menu-stats">
+                    {`${docDiagnostics.sizeKb} KB · ${docDiagnostics.lines} lines · ${docDiagnostics.tasks} tasks`}
+                  </div>
                 )}
               </div>
             )}

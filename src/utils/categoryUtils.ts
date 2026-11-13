@@ -246,3 +246,20 @@ export const collectStarredItems = (lists: TodoList[]): StarredItemEntry[] => {
   return entries;
 };
 
+/**
+ * Total number of todo items across every list, category, and subcategory of a
+ * document. Used by the developer diagnostics footer in the list-options menu
+ * (document size, JSON line count, and task count).
+ */
+export const countTodoItems = (lists: TodoList[]): number => {
+  let count = 0;
+  const walk = (categories: Category[]): void => {
+    for (const category of categories) {
+      count += category.items.length;
+      walk(category.subcategories);
+    }
+  };
+  for (const list of lists) walk(list.categories);
+  return count;
+};
+

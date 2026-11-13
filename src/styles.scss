@@ -1506,8 +1506,24 @@ body {
         }
 
         .tab-options-list {
-            max-height: 520px;
+            // Takes the full available screen height instead of a fixed 520px
+            // box: from the menu's computed top (passed via --tab-menu-top)
+            // down to the bottom of the viewport, reserving space for the
+            // "drag to reorder" header, the optional dev diagnostics footer,
+            // and the screen margins. Content still sizes the menu when short.
+            max-height: calc(100vh - var(--tab-menu-top, 0px) - 72px);
             overflow-y: auto;
+        }
+
+        // Developer-only footer (shown for the maintainer / dev builds) with
+        // sizing info about the JSON document backing the app.
+        .tab-options-menu-stats {
+            font-size: 0.7rem;
+            color: $text-muted;
+            text-align: right;
+            padding: 6px 10px;
+            border-top: 1px solid rgba($border-color, 0.4);
+            white-space: nowrap;
         }
     }
 }
