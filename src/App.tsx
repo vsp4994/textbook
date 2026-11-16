@@ -1,10 +1,10 @@
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Category as CategoryComponent, EmptyState, Icon, Modal, ReorderList, StarredList, Toast, TodoItem, type ToastSeverity } from './components';
+import { Category as CategoryComponent, EmptyState, Icon, Modal, MoveModal, ReorderList, StarredList, Toast, TodoItem, type ToastSeverity } from './components';
 import { useDocument, type UseDocumentReturn } from './hooks/useDocument';
 import { useHorizontalSwipe, useIsMobileDevice, useTextPrompt } from './hooks';
 import { useKeyboardShortcuts } from './keyboard';
 import { DriveSyncProvider, useDriveSync } from './sync/DriveSyncContext';
-import { MAX_DEPTH, STARRED_LIST_ID, type Category, type TodoItemType, type TodoList } from './types';
+import { MAX_DEPTH, STARRED_LIST_ID, type AppDocument, type Category, type TodoItemType, type TodoList } from './types';
 import type { ModalConfig } from './components/types/todoItem.types';
 import {
   clampCategoryTitle,
@@ -18,6 +18,15 @@ import {
   updateCategoriesRecursive,
   updateTodoItems,
 } from './utils/categoryUtils';
+import {
+  buildMoveModel,
+  getCategoryTitlePath,
+  moveCategory,
+  moveTask,
+  type MoveEntity,
+  type MoveOutcome,
+  type MoveTarget,
+} from './utils/moveUtils';
 import { generateUUID } from './utils/uuid';
 import { SyncPanel } from './components/SyncPanel';
 import type { SearchNavigationTarget, SearchResult } from './search';
@@ -47,6 +56,18 @@ const findTodoAcrossLists = (lists: TodoList[], todoId: string): TodoItemType | 
     if (found) return found;
   }
   return null;
+};
+
+// Human-readable destination used in the success toast after a move, e.g.
+// "Groceries" (a category of the current list) or the top level of another list.
+const describeMoveTarget = (target: MoveTarget, document: AppDocument): string => {
+  const list = document.lists.find((l) => l.id === target.listId);
+  const listTitle = list?.title ?? 'list';
+  if (target.kind === 'list-root') {
+    return `the top level of "${listTitle}"`;
+  }
+  const path = getCategoryTitlePath(list?.categories ?? [], target.categoryId);
+  return `${listTitle} → ${path.join(' → ')}`;
 };
 
 interface AppContentProps {
@@ -111,6 +132,15 @@ const AppContent = ({ document }: AppContentProps) => {
     | { kind: 'add' }
     | { kind: 'rename'; list: TodoList };
   const [listPrompt, setListPrompt] = useState<ListPromptState | null>(null);
+
+  // "Move to ..." destination picker. Closing the modal (or completing a move)
+  // clears this; the model (destination sections + entity title) is rebuilt from
+  // the live document each time the picker opens so it is always in sync.
+  const [moveEntity, setMoveEntity] = useState<MoveEntity | null>(null);
+  const moveModel = useMemo(
+    () => (doc && moveEntity ? buildMoveModel(moveEntity, doc) : null),
+    [doc, moveEntity]
+  );
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -483,6 +513,64 @@ const AppContent = ({ document }: AppContentProps) => {
     });
   };
 
+  // --- "Move to ..." destination picker ---
+
+  const handleMoveTodo = (todoId: string) => {
+    setOpenDropdownId(null);
+    setMoveEntity({ kind: 'task', todoId });
+  };
+
+  const handleMoveCategory = (categoryId: string) => {
+    setOpenDropdownId(null);
+    setMoveEntity({ kind: 'category', categoryId });
+  };
+
+  // Applies the move to the document, redirects to the destination list,
+  // reveals the moved entity (expanding collapsed ancestors, same UI-only
+  // mechanism as search navigation), and confirms with a success toast.
+  const handleMoveConfirm = (target: MoveTarget) => {
+    if (!doc || !moveEntity || !moveModel) return;
+
+    let outcome: MoveOutcome;
+    try {
+      outcome =
+        moveEntity.kind === 'task'
+          ? moveTask(doc, moveEntity.todoId, target)
+          : moveCategory(doc, moveEntity.categoryId, target);
+    } catch (error) {
+      showToast('error', error instanceof Error ? error.message : 'This move is not allowed.');
+      return;
+    }
+
+    setMoveEntity(null);
+    setOpenDropdownId(null);
+    setActiveListId(outcome.targetListId);
+
+    // Reveal the moved entity in its new home (see handleSearchNavigate). A
+    // fresh token guarantees the destination categories expand once more even
+    // if the user moves twice in a row to the same spot.
+    const token = searchRevealTokenRef.current + 1;
+    searchRevealTokenRef.current = token;
+    setSearchReveal({
+      token,
+      listId: outcome.targetListId,
+      expandCategoryIds: outcome.expandCategoryIds,
+      focusCategoryId: outcome.focusCategoryId,
+      focusTodoId: outcome.focusTodoId,
+    });
+    if (outcome.focusTodoId) {
+      setFocusInputId(outcome.focusTodoId);
+    }
+    window.setTimeout(() => setSearchReveal(null), 0);
+
+    updateDocument({ ...outcome.document, activeListId: outcome.targetListId }, true);
+
+    showToast(
+      'success',
+      `Moved "${moveModel.entityTitle}" to ${describeMoveTarget(target, outcome.document)}`
+    );
+  };
+
   const handleAddTodoAfter = (categoryId: string, afterItemId: string) => {
     const newTodo: TodoItemType = {
       id: generateUUID(),
@@ -569,6 +657,7 @@ const AppContent = ({ document }: AppContentProps) => {
       onDeleteTodo={handleDeleteTodo}
       onAddTodoAfter={handleAddTodoAfter}
       setOpenDropdownId={setOpenDropdownId}
+      onMoveTodo={handleMoveTodo}
       onPasteTodoLines={handlePasteTodoLines}
     />
   );
@@ -581,6 +670,7 @@ const AppContent = ({ document }: AppContentProps) => {
       onAddSubcategory={handleAddSubcategory}
       onDeleteCategory={handleDeleteCategory}
       onDeleteAllChecked={handleDeleteAllChecked}
+      onMoveCategory={handleMoveCategory}
       openDropdownId={openDropdownId}
       setOpenDropdownId={setOpenDropdownId}
       setFocusInputId={setFocusInputId}
@@ -748,7 +838,8 @@ const AppContent = ({ document }: AppContentProps) => {
       hasLists &&
       !modalConfig.isOpen &&
       !tabMenuOpen &&
-      !openDropdownId,
+      !openDropdownId &&
+      !moveEntity,
     onSwipeLeft: () => openAdjacentList(1),
     onSwipeRight: () => openAdjacentList(-1),
     shouldIgnoreTarget: (target) =>
@@ -773,7 +864,8 @@ const AppContent = ({ document }: AppContentProps) => {
       hasLists &&
       !modalConfig.isOpen &&
       !tabMenuOpen &&
-      !openDropdownId,
+      !openDropdownId &&
+      !moveEntity,
   });
 
   if (isLoading) {
@@ -996,6 +1088,15 @@ const AppContent = ({ document }: AppContentProps) => {
       >
         {listTitlePrompt.renderField()}
       </Modal>
+
+      {moveModel && (
+        <MoveModal
+          title={`Move "${moveModel.entityTitle}" to ...`}
+          sections={moveModel.sections}
+          onClose={() => setMoveEntity(null)}
+          onMove={handleMoveConfirm}
+        />
+      )}
     </div>
   );
 };

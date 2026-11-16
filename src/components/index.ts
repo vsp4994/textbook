@@ -1,5 +1,7 @@
 export { Icon } from './Icon';
 export { Modal } from './Modal';
+export { MoveModal } from './MoveModal';
+export type { MoveModalProps } from './MoveModal';
 export { ReorderList } from './ReorderList';
 export { JsonView } from './JsonView';
 export { EmptyState } from './EmptyState';

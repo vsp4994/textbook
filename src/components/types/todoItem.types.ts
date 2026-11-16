@@ -22,6 +22,8 @@ export interface TodoItemProps {
   onDeleteTodo: (todoId: string) => void;
   onAddTodoAfter: (categoryId: string, todoId: string) => void;
   setOpenDropdownId: (id: string | null) => void;
+  /** Opens the "Move to ..." destination picker for this task. */
+  onMoveTodo: (todoId: string) => void;
   onPasteTodoLines: (
     todoId: string,
     categoryId: string,

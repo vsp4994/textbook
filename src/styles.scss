@@ -1777,6 +1777,104 @@ body {
     cursor: not-allowed;
 }
 
+// Move-destination picker (the "Move to ..." modal). It has no confirm/cancel
+// row: every destination is a button that performs the move on click, so the
+// list is the whole interaction surface. The current list is labelled and the
+// structure mirrors the document (other lists first-class, then their tree).
+.move-destination-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 60vh;
+    overflow-y: auto;
+    margin: 0 -8px;
+    padding: 0 8px;
+
+    .move-empty-note {
+        margin: 12px 0;
+    }
+
+    .move-section {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin-bottom: 6px;
+
+        .move-section-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: $text-muted;
+            padding: 10px 0 4px;
+            border-bottom: 1px solid $border-color;
+            margin-bottom: 2px;
+            flex-shrink: 0;
+
+            .move-section-current {
+                color: $primary-color;
+                text-transform: none;
+            }
+        }
+    }
+
+    .move-destination {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        text-align: left;
+        background: none;
+        border: none;
+        color: $text-color;
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        line-height: 1.35;
+        white-space: normal;
+
+        &:hover:not(:disabled) {
+            background-color: rgba($primary-color, 0.12);
+            color: $primary-color;
+        }
+
+        &:disabled {
+            color: $text-muted;
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+
+        &.move-destination--root {
+            background-color: rgba($primary-color, 0.08);
+            border: 1px dashed $border-color;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+    }
+}
+
+// Subtle close affordance (this modal intentionally has no action buttons).
+.move-modal-close {
+    align-self: center;
+    background: none;
+    border: 1px solid $border-color;
+    color: $text-muted;
+    border-radius: 6px;
+    padding: 6px 22px;
+    cursor: pointer;
+    font-size: 0.85rem;
+
+    &:hover {
+        color: $text-color;
+        border-color: $text-color;
+    }
+}
+
+
 .empty-state {
     text-align: center;
     padding: 20px;
