@@ -32,6 +32,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   onDeleteTodo,
   onAddTodoAfter,
   setOpenDropdownId,
+  onMoveTodo,
   onPasteTodoLines,
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -378,6 +379,12 @@ export const TodoItem: React.FC<TodoItemProps> = ({
     descriptionCopyTimerRef.current = window.setTimeout(() => setDescriptionCopied(false), 1500);
   };
 
+  const handleMoveClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    setOpenDropdownId(null);
+    onMoveTodo(item.id);
+  };
+
   const handleDeleteClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     setOpenDropdownId(null);
@@ -484,6 +491,10 @@ export const TodoItem: React.FC<TodoItemProps> = ({
                   Add Description
                 </button>
               )}
+              <button type="button" onClick={handleMoveClick}>
+                <Icon name="ri-drag-move-2-line" />
+                <span style={{ marginLeft: '8px' }}>Move to ...</span>
+              </button>
               <button type="button" className="delete-action" onClick={handleDeleteClick}>
                 Delete
               </button>

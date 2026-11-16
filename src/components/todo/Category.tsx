@@ -12,6 +12,8 @@ interface CategoryProps {
   onAddSubcategory: (category: CategoryType) => void;
   onDeleteCategory: (categoryId: string, title: string) => void;
   onDeleteAllChecked: (categoryId: string, title: string) => void;
+  /** Opens the "Move to ..." destination picker for this category. */
+  onMoveCategory: (categoryId: string) => void;
   openDropdownId: string | null;
   setOpenDropdownId: (id: string | null) => void;
   setFocusInputId: (id: string | null) => void;
@@ -32,6 +34,7 @@ export const Category: React.FC<CategoryProps> = ({
   onAddSubcategory,
   onDeleteCategory,
   onDeleteAllChecked,
+  onMoveCategory,
   openDropdownId,
   setOpenDropdownId,
   setFocusInputId,
@@ -175,6 +178,12 @@ export const Category: React.FC<CategoryProps> = ({
     setOpenDropdownId(null);
   };
 
+  const handleMoveClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    setOpenDropdownId(null);
+    onMoveCategory(category.id);
+  };
+
   const handleDeleteCategoryClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     onDeleteCategory(category.id, category.title);
@@ -274,6 +283,10 @@ export const Category: React.FC<CategoryProps> = ({
             )}
             <button disabled={category.depth >= 3} onClick={handleAddSubcategoryClick} type='button'>
               Add Subcategory
+            </button>
+            <button onClick={handleMoveClick} type='button'>
+              <Icon name="ri-drag-move-2-line" />
+              <span style={{ marginLeft: '8px' }}>Move to ...</span>
             </button>
             {hasCheckedItems && (
               <button className="delete-action" onClick={handleDeleteAllCheckedClick} type='button'>
