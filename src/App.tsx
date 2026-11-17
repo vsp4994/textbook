@@ -34,7 +34,7 @@ import { createImportedList } from './importTextbookJson';
 
 interface ToastState {
   severity: ToastSeverity;
-  message: string;
+  message: ReactNode;
   /** Changes on every show so the Toast remounts (resetting its dismiss timer). */
   id: number;
 }
@@ -59,16 +59,24 @@ const findTodoAcrossLists = (lists: TodoList[], todoId: string): TodoItemType | 
   return null;
 };
 
-// Human-readable destination used in the success toast after a move, e.g.
-// "Groceries" (a category of the current list) or the top level of another list.
-const describeMoveTarget = (target: MoveTarget, document: AppDocument): string => {
+// Destination part of the success toast after a move, e.g. "Groceries / Daily"
+// (a category inside a list) or "the top level of "Daily"" (a Main Category
+// move). Titles are wrapped in <em class="toast-title"> so the toast renders
+// them emphasised and lets them wrap across multiple lines instead of
+// truncating, even on small screens.
+const describeMoveDestTitle = (target: MoveTarget, document: AppDocument): ReactNode => {
   const list = document.lists.find((l) => l.id === target.listId);
   const listTitle = list?.title ?? 'list';
   if (target.kind === 'list-root') {
-    return `the top level of "${listTitle}"`;
+    return <em className="toast-title">the top level of "{listTitle}"</em>;
   }
   const path = getCategoryTitlePath(list?.categories ?? [], target.categoryId);
-  return `${listTitle} → ${path.join(' → ')}`;
+  const categoryTitle = path[path.length - 1] ?? 'this category';
+  return (
+    <em className="toast-title">
+      {categoryTitle} / {listTitle}
+    </em>
+  );
 };
 
 interface AppContentProps {
@@ -117,7 +125,7 @@ const AppContent = ({ document }: AppContentProps) => {
   const [searchReveal, setSearchReveal] = useState<SearchNavigationTarget | null>(null);
   const searchRevealTokenRef = useRef(0);
 
-  const showToast = useCallback((severity: ToastSeverity, message: string) => {
+  const showToast = useCallback((severity: ToastSeverity, message: ReactNode) => {
     setToast({ severity, message, id: Date.now() });
   }, []);
 
@@ -608,7 +616,10 @@ const AppContent = ({ document }: AppContentProps) => {
 
     showToast(
       'success',
-      `Moved "${moveModel.entityTitle}" to ${describeMoveTarget(target, outcome.document)}`
+      <>
+        {moveEntity.kind === 'task' ? 'Task' : 'Category'} <em className="toast-title">{moveModel.entityTitle}</em>{' '}
+        was moved to {describeMoveDestTitle(target, outcome.document)}.
+      </>
     );
   };
 

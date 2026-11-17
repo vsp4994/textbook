@@ -626,9 +626,13 @@ body {
 
 
 // Floating toast notification, shown at the bottom of the viewport — e.g. the
-// "Task completed" confirmation when a todo is checked from the Starred view.
-// The parent only supplies the severity; the matching icon and colour are
-// decided here inside the component.
+// "Task completed" confirmation when a todo is checked from the Starred view,
+// or the "Task … was moved to …" confirmation. It renders as a neutral card
+// (card background + border + radius) with a single row layout — filled status
+// icon (left) · message (middle, wrapping) · close button (right) — all
+// vertically aligned. The severity is conveyed only by the coloured status
+// icon; the close button lets the user dismiss it before the 7s auto-dismiss,
+// and the message wraps freely (2–3 lines on small screens) without truncation.
 .toast {
     position: fixed;
     left: 50%;
@@ -638,37 +642,72 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-    max-width: calc(100vw - 40px);
-    padding: 12px 18px;
-    border-radius: 10px;
-    color: #fff;
-    font-weight: 600;
+    width: min(460px, calc(100vw - 32px));
+    padding: 12px 14px;
+    border-radius: 12px;
+    background-color: $card-bg;
+    border: 1px solid $border-color;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
     animation: toast-in 0.25s ease-out;
 
-    .toast-icon {
+    .toast-status-icon {
         display: inline-flex;
-        font-size: 1.2rem;
         flex-shrink: 0;
+        font-size: 1.35rem;
+        line-height: 1;
     }
 
     .toast-message {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        flex: 1 1 auto;
+        min-width: 0;
+        color: $text-color;
+        font-size: 0.92rem;
+        line-height: 1.45;
+        font-weight: 500;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+
+        // Emphasised titles inside e.g. the "was moved to" message. Bold +
+        // italic so the entity and destination stand out and wrap to multiple
+        // lines on small screens (never truncated).
+        .toast-title {
+            color: $text-color;
+            font-weight: 700;
+            font-style: italic;
+        }
     }
 
-    // Success: green background + white text with a check icon.
-    &.toast--success {
-        background-color: #16a34a;
+    .toast-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        padding: 4px;
+        background: none;
+        border: none;
+        border-radius: 6px;
+        color: $text-muted;
+        font-size: 1.15rem;
+        cursor: pointer;
+
+        &:hover {
+            background-color: rgba($text-muted, 0.15);
+            color: $text-color;
+        }
     }
 
-    &.toast--error {
-        background-color: $danger-color;
+    // The severity only colours the filled status icon, never the card itself.
+    &.toast--success .toast-status-icon {
+        color: $success-color;
     }
 
-    &.toast--info {
-        background-color: $primary-color;
+    &.toast--error .toast-status-icon {
+        color: $danger-color;
+    }
+
+    &.toast--info .toast-status-icon {
+        color: $primary-color;
     }
 }
 
@@ -1800,24 +1839,73 @@ body {
         gap: 2px;
         margin-bottom: 6px;
 
+        // List accordion header — the whole row toggles that list's
+        // destinations. Lists default to collapsed so a document with many
+        // categories reads as a compact, scrollable list of list titles; the
+        // count badge previews how many destinations sit inside.
         .move-section-header {
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-size: 0.72rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: $text-muted;
-            padding: 10px 0 4px;
+            gap: 8px;
+            width: 100%;
+            text-align: left;
+            padding: 9px 10px;
+            background: none;
+            border: none;
             border-bottom: 1px solid $border-color;
-            margin-bottom: 2px;
+            border-radius: 6px 6px 0 0;
+            color: $text-color;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
             flex-shrink: 0;
 
-            .move-section-current {
-                color: $primary-color;
-                text-transform: none;
+            .move-section-title {
+                flex: 1;
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
+
+            .ri {
+                color: $text-muted;
+                flex-shrink: 0;
+                font-size: 1.1rem;
+            }
+
+            .move-section-current {
+                flex-shrink: 0;
+                color: $primary-color;
+                font-size: 0.78rem;
+                font-weight: 600;
+            }
+
+            .move-section-count {
+                flex-shrink: 0;
+                background-color: rgba($text-muted, 0.18);
+                color: $text-muted;
+                border-radius: 999px;
+                padding: 1px 8px;
+                font-size: 0.72rem;
+                font-weight: 600;
+                font-variant-numeric: tabular-nums;
+            }
+
+            &:hover {
+                background-color: rgba($primary-color, 0.08);
+
+                .ri {
+                    color: $primary-color;
+                }
+            }
+        }
+
+        .move-section-body {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 6px 0 4px;
         }
     }
 
