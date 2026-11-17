@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { type ChangeEvent, type CSSProperties, type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Category as CategoryComponent, EmptyState, Icon, Modal, MoveModal, ReorderList, StarredList, Toast, TodoItem, type ToastSeverity } from './components';
 import { useDocument, type UseDocumentReturn } from './hooks/useDocument';
 import { useHorizontalSwipe, useIsMobileDevice, useTextPrompt } from './hooks';
@@ -30,6 +30,7 @@ import {
 import { generateUUID } from './utils/uuid';
 import { SyncPanel } from './components/SyncPanel';
 import type { SearchNavigationTarget, SearchResult } from './search';
+import { createImportedList } from './importTextbookJson';
 
 interface ToastState {
   severity: ToastSeverity;
@@ -98,6 +99,8 @@ const AppContent = ({ document }: AppContentProps) => {
   const tabOptionsRef = useRef<HTMLButtonElement>(null);
   const tabMenuRef = useRef<HTMLDivElement | null>(null);
   const tabListRef = useRef<HTMLDivElement | null>(null);
+
+  const importFileInputRef = useRef<HTMLInputElement>(null);
 
   // Direction-aware slide for the mobile list switch — see the comparison below.
   const [prevActiveListId, setPrevActiveListId] = useState(activeListId);
@@ -198,6 +201,44 @@ const AppContent = ({ document }: AppContentProps) => {
       tabList.scrollBy({ left: tabRect.right - listRect.right + padding, behavior: 'smooth' });
     }
   }, [activeListId]);
+
+  const handleImportJson = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = ''; // Allows selecting the same file again.
+    if (!file) return;
+
+    const startingDocumentId = document.getCurrentDocument()?.documentId;
+    if (!startingDocumentId) {
+      showToast('error', 'Document is not ready.');
+      return;
+    }
+
+    try {
+      const rawJson: unknown = JSON.parse(await file.text());
+      const { list, taskCount, skippedDuplicates } = createImportedList(rawJson);
+
+      // Read the latest document after the async file read, not a stale `doc`.
+      const latestDocument = document.getCurrentDocument();
+      if (!latestDocument || latestDocument.documentId !== startingDocumentId) {
+        throw new Error('Your active document changed during import. Please try again.');
+      }
+
+      // Single non-destructive document mutation, handled by useDocument's
+      // existing IndexedDB persistence and Google Drive dirty/sync logic.
+      setActiveListId(list.id);
+      updateDocument({
+        ...latestDocument,
+        lists: [...latestDocument.lists, list],
+        activeListId: list.id,
+      });
+
+      const skipped = skippedDuplicates ? ` (${skippedDuplicates} duplicates skipped)` : '';
+      showToast('success', `Imported ${taskCount} tasks into ${list.title}${skipped}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not import JSON.';
+      showToast('error', message);
+    }
+  };
 
   const getActiveList = (): TodoList | undefined =>
     doc?.lists.find((list) => list.id === activeListId);
@@ -956,6 +997,22 @@ const AppContent = ({ document }: AppContentProps) => {
 
           <button className="tab-item add-tab" onClick={handleAddList} type="button">
             <Icon name="ri-add-line" /> List
+          </button>
+
+          <input
+            ref={importFileInputRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={handleImportJson}
+            hidden
+          />
+          <button
+            className="tab-item add-tab"
+            type="button"
+            title="Import TextBook JSON into a new list"
+            onClick={() => importFileInputRef.current?.click()}
+          >
+            <Icon name="ri-file-upload-line" /> Import JSON
           </button>
         </div>
 
