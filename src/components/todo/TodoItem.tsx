@@ -4,6 +4,7 @@ import type { TodoItemProps } from '../types/todoItem.types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useDropdownFlip } from '../../hooks';
+import { useI18n } from '../../i18n';
 import { createPortal } from 'react-dom';
 import { Modal } from '../Modal';
 
@@ -56,6 +57,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
     singleLine: string;
   } | null>(null);
   const previewDialogRef = useRef<HTMLDialogElement | null>(null);
+  const { t } = useI18n();
 
   // Opens the task 3-dot menu upward (instead of downward) when it would
   // otherwise spill past the bottom of the viewport — see useDropdownFlip.
@@ -255,7 +257,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   // shows "Untitled" instead of the fresh-task hint, so it's clear the task
   // still exists under an empty name rather than reading as a blank row.
   const titlePlaceholder =
-    hasDescription && !item.title.trim() ? 'Untitled' : 'Task name...';
+    hasDescription && !item.title.trim() ? t('task.untitled') : t('task.namePlaceholder');
 
   const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onUpdateTodo(item.id, () => ({ description: e.target.value }));
@@ -415,7 +417,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
               href={descriptionLinkUrl ?? '#'}
               target="_blank"
               rel="noopener noreferrer"
-              title={`Open ${descriptionLinkUrl} in a new tab`}
+              title={t('task.openLinkTitle', { url: descriptionLinkUrl ?? '' })}
             >
               {item.title}
             </a>
@@ -448,8 +450,8 @@ export const TodoItem: React.FC<TodoItemProps> = ({
             // is what decides open vs closed.
             onPointerDown={(e) => e.preventDefault()}
             onClick={handleDescriptionToggle}
-            title={descriptionOpen ? 'Hide description' : 'Show description'}
-            aria-label={descriptionOpen ? 'Hide description' : 'Show description'}
+            title={descriptionOpen ? t('task.hideDescription') : t('task.showDescription')}
+            aria-label={descriptionOpen ? t('task.hideDescription') : t('task.showDescription')}
           >
             <Icon name="ri-quote-text" />
           </button>
@@ -459,7 +461,13 @@ export const TodoItem: React.FC<TodoItemProps> = ({
           <button
             className={`icon-btn star-icon-btn ${item.starred && !item.completed ? 'is-starred' : ''}`}
             onClick={handleStarClick}
-            title={item.starred ? (item.completed ? 'Unstar (checked)' : 'Unstar') : 'Star'}
+            title={
+              item.starred
+                ? item.completed
+                  ? t('task.unstarChecked')
+                  : t('task.unstar')
+                : t('task.star')
+            }
           >
             <Icon name={item.starred ? 'ri-star-fill' : 'ri-star-line'} />
           </button>
@@ -472,8 +480,8 @@ export const TodoItem: React.FC<TodoItemProps> = ({
               className="icon-btn secondary"
               type="button"
               onClick={handleMoreToggle}
-              title="More actions"
-              aria-label="More actions"
+              title={t('task.moreActions')}
+              aria-label={t('task.moreActions')}
             >
               <Icon name="ri-more-2-fill" />
             </button>
@@ -483,20 +491,20 @@ export const TodoItem: React.FC<TodoItemProps> = ({
                   description textarea instead, so it isn't duplicated here. */}
               {!hasDescription && (
                 <button type="button" onClick={handleCopyClick} disabled={!getCopyText()}>
-                  {copied ? 'Copied!' : 'Copy'}
+                  {copied ? t('common.copied') : t('common.copy')}
                 </button>
               )}
               {!hasDescription && (
                 <button type="button" onClick={handleAddDescriptionClick}>
-                  Add Description
+                  {t('task.addDescription')}
                 </button>
               )}
               <button type="button" onClick={handleMoveClick}>
                 <Icon name="ri-drag-move-2-line" />
-                <span style={{ marginLeft: '8px' }}>Move to ...</span>
+                <span style={{ marginLeft: '8px' }}>{t('task.moveTo')}</span>
               </button>
               <button type="button" className="delete-action" onClick={handleDeleteClick}>
-                Delete
+                {t('common.delete')}
               </button>
             </div>
           </div>
@@ -515,7 +523,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
           // handler doesn't close (then reopen) the editor.
           onPointerDown={(e) => e.preventDefault()}
           onClick={handleDescriptionToggle}
-          title="Show description"
+          title={t('task.showDescription')}
         >
           <span ref={chipTextRef} className="todo-description-chip__text">
             {item.description}
@@ -531,15 +539,15 @@ export const TodoItem: React.FC<TodoItemProps> = ({
               {/* Task title naming the preview — truncated with an ellipsis if
                   it's long, so the close button always stays in place. */}
               <span className="markdown-preview-title" title={item.title}>
-                {item.title || 'Preview'}
+                {item.title || t('task.preview')}
               </span>
 
               <form method="dialog">
                 <button
                   type="submit"
                   className="icon-btn secondary"
-                  title="Close preview"
-                  aria-label="Close preview"
+                  title={t('task.closePreview')}
+                  aria-label={t('task.closePreview')}
                 >
                   <Icon name="ri-close-line" />
                 </button>
@@ -548,7 +556,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
 
             <div className="markdown-preview-content">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {item.description || '*Nothing to preview*'}
+                {item.description || t('task.nothingToPreview')}
               </ReactMarkdown>
             </div>
           </dialog>
@@ -556,7 +564,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
             ref={descriptionRef}
             className={`todo-description${descriptionExpanded ? ' is-expanded' : ''}`}
             value={item.description}
-            placeholder="Add description..."
+            placeholder={t('task.addDescriptionPlaceholder')}
             onChange={handleDescriptionChange}
             onBlur={handleDescriptionBlur}
           />
@@ -564,8 +572,8 @@ export const TodoItem: React.FC<TodoItemProps> = ({
             <button
               type="button"
               className="icon-btn secondary"
-              title="Preview Markdown"
-              aria-label="Preview Markdown"
+              title={t('task.previewMarkdown')}
+              aria-label={t('task.previewMarkdown')}
               onPointerDown={(e) => e.preventDefault()}
               onClick={() => previewDialogRef.current?.showModal()}
             >
@@ -577,8 +585,8 @@ export const TodoItem: React.FC<TodoItemProps> = ({
               <button
                 className="icon-btn secondary"
                 type="button"
-                title={descriptionCopied ? 'Copied!' : 'Copy description'}
-                aria-label={descriptionCopied ? 'Copied!' : 'Copy description'}
+                title={descriptionCopied ? t('common.copied') : t('task.copyDescription')}
+                aria-label={descriptionCopied ? t('common.copied') : t('task.copyDescription')}
                 // Keep focus on the textarea while the copy button is clicked so
                 // the blur handler doesn't close the editor; the pointerdown
                 // preventDefault mirrors the description chip.
@@ -591,8 +599,8 @@ export const TodoItem: React.FC<TodoItemProps> = ({
             <button
               className="icon-btn secondary"
               type="button"
-              title={descriptionExpanded ? 'Collapse description' : 'Expand description'}
-              aria-label={descriptionExpanded ? 'Collapse description' : 'Expand description'}
+              title={descriptionExpanded ? t('task.collapseDescription') : t('task.expandDescription')}
+              aria-label={descriptionExpanded ? t('task.collapseDescription') : t('task.expandDescription')}
               // Keep focus on the textarea while the expand button is clicked so
               // the blur handler doesn't close the editor; the pointerdown
               // preventDefault mirrors the description chip.
@@ -609,8 +617,8 @@ export const TodoItem: React.FC<TodoItemProps> = ({
         <Modal
           isOpen
           onClose={handlePasteCancel}
-          title="Paste multiple tasks?"
-          message={`Detected ${pendingPaste.tasks.length} tasks. How would you like to paste them?`}
+          title={t('task.pasteTitle')}
+          message={t('task.pasteMessage', { count: pendingPaste.tasks.length })}
           onConfirm={handlePasteAsTasks}
           actions={
             <div style={{ display: 'flex', gap: '0.5rem', flexDirection: 'column', marginTop: '1rem' }}>
@@ -619,7 +627,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
                 className="btn btn-primary"
                 onClick={handlePasteAsTasks}
               >
-                Add {pendingPaste.tasks.length} tasks
+                {t('task.addTasks', { count: pendingPaste.tasks.length })}
               </button>
 
               <button
@@ -627,7 +635,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
                 className="btn btn-secondary"
                 onClick={handlePasteAsOneLine}
               >
-                Paste as one line
+                {t('task.pasteAsOneLine')}
               </button>
 
               <button
@@ -635,7 +643,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
                 className="btn btn-secondary"
                 onClick={handlePasteCancel}
               >
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           }

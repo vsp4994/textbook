@@ -939,12 +939,13 @@ body {
 
 // Main (depth-1) category headers in the web view render WITHOUT a fold chevron
 // (top-level categories are always open there — see forceOpenOnWeb). Give their
-// title the same left inset the chevron would have occupied, so depth-1 titles
-// align with the depth-2/3 headers that still show the chevron. 28px = the 1rem
-// (16px) glyph + its 4px inline margins + the button's 4px flex gap.
+// title only a small left inset instead of the full chevron footprint, so depth-1
+// titles sit noticeably closer to the card edge than the depth-2/3 headers that
+// still show the chevron. 8px = a small breathing room consistent with the
+// chevron's 4px side margins + the button's 4px flex gap.
 @media (min-width: 601px) {
     .category-card.depth-1 > .category-header .category-title {
-        margin-left: 28px;
+        margin-left: 8px;
     }
 }
 
@@ -1696,6 +1697,35 @@ body {
             background-color: rgba($border-color, 0.2);
             color: $text-color;
         }
+    }
+}
+
+// Language switcher — compact header toggle: globe icon + current code badge.
+.language-switcher {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: $border-radius;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all $transition-speed;
+    border: 1px solid $border-color;
+    background-color: transparent;
+    color: $text-color;
+
+    &:hover {
+        background-color: rgba($border-color, 0.2);
+    }
+
+    .language-switcher-code {
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: $text-muted;
     }
 }
 

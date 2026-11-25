@@ -5,7 +5,8 @@ import {
 } from '../components';
 import { GlobalSearch, type SearchResult } from '../search';
 import { useDriveSync } from '../sync/DriveSyncContext';
-import type { AppDocument } from '../types';
+import { LanguageSwitcher, localizeErrorMessage, useI18n, type TranslationKey } from '../i18n';
+import type { AppDocument, SyncStatus } from '../types';
 
 interface SyncPanelProps {
   document: AppDocument | null;
@@ -14,15 +15,15 @@ interface SyncPanelProps {
   onSearchNavigate: (result: SearchResult) => void;
 }
 
-const STATUS_LABELS = {
-  'local-only': 'Local only - Connect to sync data',
-  connecting: 'Connecting',
-  syncing: 'Syncing',
-  synced: 'Synced',
-  offline: 'Offline',
-  'reauth-required': 'Reconnect',
-  error: 'Sync failed',
-} as const;
+const STATUS_LABEL_KEYS: Record<SyncStatus, TranslationKey> = {
+  'local-only': 'sync.localOnly',
+  connecting: 'sync.connecting',
+  syncing: 'sync.syncing',
+  synced: 'sync.synced',
+  offline: 'sync.offline',
+  'reauth-required': 'sync.reconnect',
+  error: 'sync.failed',
+};
 
 const STATUS_CLASS_NAMES = {
   'local-only': 'state-local-only',
@@ -35,6 +36,7 @@ const STATUS_CLASS_NAMES = {
 } as const;
 
 export const SyncPanel = ({ document, isDbAvailable, onSearchNavigate }: SyncPanelProps) => {
+  const { t } = useI18n();
   const {
     status,
     errorMessage,
@@ -75,7 +77,7 @@ export const SyncPanel = ({ document, isDbAvailable, onSearchNavigate }: SyncPan
   return (
     <div className="sync-panel">
       <div className="sync-status" aria-live="polite">
-        <span className={`status-badge ${STATUS_CLASS_NAMES[status]}`}>{STATUS_LABELS[status]}</span>
+        <span className={`status-badge ${STATUS_CLASS_NAMES[status]}`}>{t(STATUS_LABEL_KEYS[status])}</span>
 
 
         {document?.syncMetadata.lastSyncedAt && (
@@ -93,6 +95,7 @@ export const SyncPanel = ({ document, isDbAvailable, onSearchNavigate }: SyncPan
             onClick={handleConnect}
             disabled={isBusy}
             type="button"
+            title={t('sync.connectTitle')}
           >
             <Icon name="ri-plug-line" />
           </button>
@@ -100,12 +103,15 @@ export const SyncPanel = ({ document, isDbAvailable, onSearchNavigate }: SyncPan
 
         <GlobalSearch document={document} onNavigate={onSearchNavigate} />
 
+        <LanguageSwitcher />
+
         {needsReconnect && (
           <button
             className="btn btn-primary"
             onClick={handleConnect}
             disabled={isBusy}
             type="button"
+            title={t('sync.connectTitle')}
           >
             <Icon name="ri-refresh-line" />
           </button>
@@ -117,6 +123,7 @@ export const SyncPanel = ({ document, isDbAvailable, onSearchNavigate }: SyncPan
             onClick={handleRetrySync}
             disabled={isBusy}
             type="button"
+            title={t('sync.retryTitle')}
           >
             <Icon name="ri-refresh-line" />
           </button>
@@ -145,17 +152,18 @@ export const SyncPanel = ({ document, isDbAvailable, onSearchNavigate }: SyncPan
               status === 'error'
             }
             type="button"
+            title={t('sync.logoutTitle')}
           >
             <Icon name="ri-logout-box-line" />
           </button>
         )}
       </div>
 
-      {errorMessage && <div className="db-alert">{errorMessage}</div>}
+      {errorMessage && <div className="db-alert">{localizeErrorMessage(t, errorMessage)}</div>}
 
       {!isDbAvailable && (
         <div className="db-alert">
-          <Icon name="ri-alert-line" /> IndexedDB is unavailable. Changes only survive while this page stays open.
+          <Icon name="ri-alert-line" /> {t('sync.indexedDbUnavailable')}
         </div>
       )}
       {/* {currentUser?.emailAddress === 'vsp4994@gmail.com' && document && (

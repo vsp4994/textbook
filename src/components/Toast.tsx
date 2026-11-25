@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect } from 'react';
 import { Icon } from './Icon';
+import { useI18n, type TranslationKey } from '../i18n';
 
 /**
  * Supported notification severities. The parent only picks which one to show
@@ -19,10 +20,10 @@ export interface ToastProps {
   duration?: number;
 }
 
-const TOAST_META: Record<ToastSeverity, { icon: string; label: string }> = {
-  success: { icon: 'ri-checkbox-circle-fill', label: 'Success' },
-  error: { icon: 'ri-close-circle-fill', label: 'Error' },
-  info: { icon: 'ri-information-fill', label: 'Info' },
+const TOAST_META: Record<ToastSeverity, { icon: string; labelKey: TranslationKey }> = {
+  success: { icon: 'ri-checkbox-circle-fill', labelKey: 'toast.success' },
+  error: { icon: 'ri-close-circle-fill', labelKey: 'toast.error' },
+  info: { icon: 'ri-information-fill', labelKey: 'toast.info' },
 };
 
 /**
@@ -36,6 +37,7 @@ const TOAST_META: Record<ToastSeverity, { icon: string; label: string }> = {
  * message.
  */
 export const Toast = ({ severity, message, onClose, duration = 7000 }: ToastProps) => {
+  const { t } = useI18n();
   useEffect(() => {
     const timer = window.setTimeout(onClose, duration);
     return () => window.clearTimeout(timer);
@@ -51,14 +53,14 @@ export const Toast = ({ severity, message, onClose, duration = 7000 }: ToastProp
     >
       <Icon name={meta.icon} className={`toast-status-icon toast-status--${severity}`} />
       {/* Names the icon for screen readers; visually hidden via CSS. */}
-      <span className="toast-sr-only">{meta.label}: </span>
+      <span className="toast-sr-only">{t(meta.labelKey)}: </span>
       <div className="toast-message">{message}</div>
       <button
         type="button"
         className="toast-close"
         onClick={onClose}
-        aria-label="Dismiss notification"
-        title="Close"
+        aria-label={t('toast.dismiss')}
+        title={t('common.close')}
       >
         <Icon name="ri-close-line" />
       </button>

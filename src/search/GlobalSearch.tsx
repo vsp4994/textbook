@@ -5,6 +5,7 @@ import { SearchResultsList } from './SearchResultsList';
 import { SearchToggleButton } from './SearchToggleButton';
 import type { SearchResult } from './types';
 import { useGlobalSearch } from './useGlobalSearch';
+import { useI18n } from '../i18n';
 
 export interface GlobalSearchProps {
   document: AppDocument | null;
@@ -25,6 +26,7 @@ export interface GlobalSearchProps {
  * every screen element (header, content, and bottom nav) while searching.
  */
 export const GlobalSearch = ({ document, onNavigate }: GlobalSearchProps) => {
+  const { t } = useI18n();
   const { isOpen, query, results, open, close, handleQueryChange, handleSelect } = useGlobalSearch({
     document,
     onNavigate,
@@ -41,7 +43,7 @@ export const GlobalSearch = ({ document, onNavigate }: GlobalSearchProps) => {
             onClick={close}
             role="dialog"
             aria-modal="true"
-            aria-label="Search"
+            aria-label={t('search.ariaLabel')}
           >
             <div className="global-search__panel" onClick={(e) => e.stopPropagation()}>
               <SearchBar value={query} onChange={handleQueryChange} onClose={close} />

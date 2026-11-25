@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Icon } from './Icon';
 import { Modal } from './Modal';
+import { localizeErrorMessage, useI18n, type TFunction } from '../i18n';
 import type { MoveSection, MoveTarget } from '../utils/moveUtils';
 
 export interface MoveModalProps {
@@ -22,8 +23,25 @@ export interface MoveModalProps {
  * laid out in their tree order (Main → sub → sub-sub) under their list header;
  * the current list is marked, and invalid destinations (would exceed the
  * 3-level depth cap) are disabled with an explanatory tooltip.
+ *
+ * The section titles come from moveUtils (stable English contract). The two
+ * generated titles ("Make it a top-level (Main) Category" and "As a Main
+ * Category in "…") are translated here at the UI boundary; category titles are
+ * user data and pass through unchanged.
  */
+
+/** Translates the moveUtils root-destination title at the UI boundary. */
+const localizeRootTitle = (t: TFunction, title: string): string => {
+  if (title === 'Make it a top-level (Main) Category') {
+    return t('move.makeMainCategory');
+  }
+  const match = /^As a Main Category in \u201C(.+)\u201D$/.exec(title);
+  if (match) return t('move.asMainCategory', { list: match[1] });
+  return title;
+};
+
 export const MoveModal: React.FC<MoveModalProps> = ({ title, sections, onClose, onMove }) => {
+  const { t } = useI18n();
   const hasDestinations = sections.some(
     (section) => section.rootTarget !== null || section.nodes.length > 0
   );
@@ -61,7 +79,7 @@ export const MoveModal: React.FC<MoveModalProps> = ({ title, sections, onClose, 
     >
       <div className="move-destination-list" onClick={(e) => e.stopPropagation()}>
         {!hasDestinations && (
-          <p className="move-empty-note">No other destinations available in this document.</p>
+          <p className="move-empty-note">{t('move.noDestinations')}</p>
         )}
         {sections.map((section) => {
           if (section.rootTarget === null && section.nodes.length === 0) return null;
@@ -79,7 +97,7 @@ export const MoveModal: React.FC<MoveModalProps> = ({ title, sections, onClose, 
                 <Icon name={isCollapsed ? 'ri-arrow-right-s-line' : 'ri-arrow-down-s-line'} size={18} />
                 <span className="move-section-title">{section.listTitle}</span>
                 {section.isCurrentList && (
-                  <span className="move-section-current">(current)</span>
+                  <span className="move-section-current">{t('move.current')}</span>
                 )}
                 <span className="move-section-count">{destinationCount}</span>
               </button>
@@ -90,11 +108,15 @@ export const MoveModal: React.FC<MoveModalProps> = ({ title, sections, onClose, 
                       type="button"
                       className="move-destination move-destination--root"
                       disabled={section.rootTarget.disabled}
-                      title={section.rootTarget.disabledReason}
+                      title={
+                        section.rootTarget.disabledReason
+                          ? localizeErrorMessage(t, section.rootTarget.disabledReason)
+                          : undefined
+                      }
                       onClick={() => onMove(section.rootTarget!.target)}
                     >
                       <Icon name="ri-add-box-line" size={16} />
-                      <span>{section.rootTarget.title}</span>
+                      <span>{localizeRootTitle(t, section.rootTarget.title)}</span>
                     </button>
                   )}
                   {section.nodes.map((node) => (
@@ -104,7 +126,11 @@ export const MoveModal: React.FC<MoveModalProps> = ({ title, sections, onClose, 
                       className={`move-destination${node.disabled ? ' is-disabled' : ''}`}
                       style={{ paddingLeft: `${12 + (node.depth - 1) * 18}px` }}
                       disabled={node.disabled}
-                      title={node.disabledReason}
+                      title={
+                        node.disabledReason
+                          ? localizeErrorMessage(t, node.disabledReason)
+                          : undefined
+                      }
                       onClick={() => onMove(node.target)}
                     >
                       <Icon name={node.disabled ? 'ri-lock-line' : 'ri-corner-down-right-line'} size={16} />
@@ -118,7 +144,7 @@ export const MoveModal: React.FC<MoveModalProps> = ({ title, sections, onClose, 
         })}
       </div>
       <button type="button" className="move-modal-close" onClick={onClose}>
-        Close
+        {t('common.close')}
       </button>
     </Modal>
   );

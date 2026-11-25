@@ -4,6 +4,7 @@ import { Icon } from '../Icon';
 import { Modal } from '../Modal';
 import { useDropdownFlip, useMediaQuery, useTextPrompt, WEB_VIEW_QUERY } from '../../hooks';
 import { clampCategoryTitle, countCategoryItems, hasAnyCompletedItems, uncheckAllItems, sortTodoItems, hasAnyStarredItems } from '../../utils';
+import { useI18n } from '../../i18n';
 import type { SearchNavigationTarget } from '../../search/types';
 
 interface CategoryProps {
@@ -42,6 +43,7 @@ export const Category: React.FC<CategoryProps> = ({
   renderTodoItem,
   renderCategory,
 }) => {
+  const { t } = useI18n();
   const counts = countCategoryItems(category);
   const hasStarred = hasAnyStarredItems(category);
 
@@ -73,7 +75,7 @@ export const Category: React.FC<CategoryProps> = ({
   const renamePrompt = useTextPrompt({
     isOpen: isRenameOpen,
     initialValue: category.title,
-    placeholder: 'Category title',
+    placeholder: t('prompt.categoryTitle'),
     onConfirm: (value) => {
       onUpdateCategory(category.id, () => ({ title: clampCategoryTitle(value) }));
     },
@@ -211,7 +213,7 @@ export const Category: React.FC<CategoryProps> = ({
   if (remainingCount > 0) {
     remainingIndicator = (
       <span className="category-count">
-        · {remainingCount} left
+        · {t('category.left', { count: remainingCount })}
       </span>
     );
   } else if (counts.total !== 0) {
@@ -254,47 +256,47 @@ export const Category: React.FC<CategoryProps> = ({
           </button>
           <div className="dropdown-menu">
             <button onClick={handleRenameClick} type='button'>
-              Rename
+              {t('category.rename')}
             </button>
             {!forceOpenOnWeb && (
               <button onClick={handleKeepOpenToggle} type='button'>
                 <Icon name={category.collapsed ? "ri-checkbox-blank-line" : "ri-checkbox-fill"} />
-                <span style={{ marginLeft: '8px' }}>Keep open</span>
+                <span style={{ marginLeft: '8px' }}>{t('category.keepOpen')}</span>
               </button>
             )}
             {category.showCheckboxes && (
               <button onClick={handleSortCheckedToggle} type='button'>
                 <Icon name={category.sortCheckedToBottom ? "ri-checkbox-fill" : "ri-checkbox-blank-line"} />
-                <span style={{ marginLeft: '8px' }}>Show checked at bottom</span>
+                <span style={{ marginLeft: '8px' }}>{t('category.showCheckedAtBottom')}</span>
               </button>
             )}
             <button onClick={handleModeToggle} disabled={hasCheckedItems} type='button'>
-              {category.showCheckboxes ? 'Hide checkboxes' : 'Show checkboxes'}<br />
+              {category.showCheckboxes ? t('category.hideCheckboxes') : t('category.showCheckboxes')}<br />
               {hasCheckedItems && (
                 <span className="mode-toggle-note">
-                  Uncheck all to hide check-boxes
+                  {t('category.uncheckAllToHide')}
                 </span>
               )}
             </button>
             {category.showCheckboxes && hasCheckedItems && (
               <button onClick={handleUncheckAllClick} type='button'>
-                Uncheck all items
+                {t('category.uncheckAll')}
               </button>
             )}
             <button disabled={category.depth >= 3} onClick={handleAddSubcategoryClick} type='button'>
-              Add Subcategory
+              {t('category.addSubcategory')}
             </button>
             <button onClick={handleMoveClick} type='button'>
               <Icon name="ri-drag-move-2-line" />
-              <span style={{ marginLeft: '8px' }}>Move to ...</span>
+              <span style={{ marginLeft: '8px' }}>{t('category.moveTo')}</span>
             </button>
             {hasCheckedItems && (
               <button className="delete-action" onClick={handleDeleteAllCheckedClick} type='button'>
-                Delete all checked
+                {t('category.deleteAllChecked')}
               </button>
             )}
             <button className="delete-action" onClick={handleDeleteCategoryClick} type='button'>
-              Delete Category
+              {t('category.deleteCategory')}
             </button>
           </div>
         </div>
@@ -320,10 +322,10 @@ export const Category: React.FC<CategoryProps> = ({
       <Modal
         isOpen={isRenameOpen}
         onClose={() => setIsRenameOpen(false)}
-        title="Rename Category"
+        title={t('modal.renameCategory')}
         message=""
         type="info"
-        confirmLabel="Save"
+        confirmLabel={t('common.save')}
         onConfirm={renamePrompt.onPrimary}
         confirmDisabled={!renamePrompt.canConfirm}
       >

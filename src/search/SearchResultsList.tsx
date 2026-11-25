@@ -1,5 +1,6 @@
 import { SearchResultItem } from './SearchResultItem';
 import type { SearchResult } from './types';
+import { useI18n } from '../i18n';
 
 export interface SearchResultsListProps {
   results: SearchResult[];
@@ -13,10 +14,11 @@ export interface SearchResultsListProps {
  * browsed without pushing the search bar off-screen.
  */
 export const SearchResultsList = ({ results, query, onSelect }: SearchResultsListProps) => {
+  const { t } = useI18n();
   if (results.length === 0) {
     return (
       <div className="search-results search-results--empty">
-        <div className="search-results__empty">No results for “{query}”</div>
+        <div className="search-results__empty">{t('search.noResults', { query })}</div>
       </div>
     );
   }

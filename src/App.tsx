@@ -31,6 +31,12 @@ import { generateUUID } from './utils/uuid';
 import { SyncPanel } from './components/SyncPanel';
 import type { SearchNavigationTarget, SearchResult } from './search';
 import { createImportedList } from './importTextbookJson';
+import {
+  I18nProvider,
+  localizeErrorMessage,
+  useI18n,
+  type TFunction,
+} from './i18n';
 
 interface ToastState {
   severity: ToastSeverity;
@@ -64,18 +70,41 @@ const findTodoAcrossLists = (lists: TodoList[], todoId: string): TodoItemType | 
 // move). Titles are wrapped in <em class="toast-title"> so the toast renders
 // them emphasised and lets them wrap across multiple lines instead of
 // truncating, even on small screens.
-const describeMoveDestTitle = (target: MoveTarget, document: AppDocument): ReactNode => {
+const describeMoveDestTitle = (
+  t: TFunction,
+  target: MoveTarget,
+  document: AppDocument
+): ReactNode => {
   const list = document.lists.find((l) => l.id === target.listId);
-  const listTitle = list?.title ?? 'list';
+  const listTitle = list?.title ?? t('move.dest.fallbackList');
   if (target.kind === 'list-root') {
-    return <em className="toast-title">the top level of "{listTitle}"</em>;
+    return <em className="toast-title">{t('move.dest.topLevel', { list: listTitle })}</em>;
   }
   const path = getCategoryTitlePath(list?.categories ?? [], target.categoryId);
-  const categoryTitle = path[path.length - 1] ?? 'this category';
+  const categoryTitle = path[path.length - 1] ?? t('move.dest.fallbackCategory');
   return (
     <em className="toast-title">
       {categoryTitle} / {listTitle}
     </em>
+  );
+};
+
+// Replaces a single {{placeholder}} in a translated template with a rich
+// ReactNode (e.g. the destination <em> inside the move toast). Plain string
+// `t()` covers every other interpolation need.
+const interpolateRichNode = (
+  template: string,
+  placeholder: string,
+  value: ReactNode
+): ReactNode => {
+  const parts = template.split(`{{${placeholder}}}`);
+  if (parts.length < 2) return template;
+  return (
+    <>
+      {parts[0]}
+      {value}
+      {parts.slice(1).join(`{{${placeholder}}}`)}
+    </>
   );
 };
 
@@ -130,6 +159,8 @@ const AppContent = ({ document }: AppContentProps) => {
   }, []);
 
   const hideToast = useCallback(() => setToast(null), []);
+
+  const { t } = useI18n();
 
   // Pending category-title prompt (replacement for the native prompt()).
   type CategoryPromptState =
@@ -217,7 +248,7 @@ const AppContent = ({ document }: AppContentProps) => {
 
     const startingDocumentId = document.getCurrentDocument()?.documentId;
     if (!startingDocumentId) {
-      showToast('error', 'Document is not ready.');
+      showToast('error', t('import.docNotReady'));
       return;
     }
 
@@ -240,11 +271,20 @@ const AppContent = ({ document }: AppContentProps) => {
         activeListId: list.id,
       });
 
-      const skipped = skippedDuplicates ? ` (${skippedDuplicates} duplicates skipped)` : '';
-      showToast('success', `Imported ${taskCount} tasks into ${list.title}${skipped}`);
+      const skipped = skippedDuplicates
+        ? t('import.duplicatesSkipped', { count: skippedDuplicates })
+        : '';
+      showToast(
+        'success',
+        t('import.successToast', {
+          count: taskCount,
+          list: list.title,
+          skipped,
+        })
+      );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Could not import JSON.';
-      showToast('error', message);
+      const rawMessage = error instanceof Error ? error.message : 'Could not import JSON.';
+      showToast('error', localizeErrorMessage(t, rawMessage));
     }
   };
 
@@ -275,6 +315,12 @@ const AppContent = ({ document }: AppContentProps) => {
   // can be checked while developing without being exposed to other users.
   const { currentUser } = useDriveSync();
   const showDocDiagnostics =
+    import.meta.env.DEV || currentUser?.emailAddress === 'vsp4994@gmail.com';
+
+  // The Import JSON feature is hidden for everyone while running the local dev
+  // server and always hidden for the maintainer account, so it stays out of the
+  // way during development without being exposed to other production users.
+  const hideImportFeature =
     import.meta.env.DEV || currentUser?.emailAddress === 'vsp4994@gmail.com';
 
   // Size / JSON-line / task-count of the document backing the app. Recomputed
@@ -347,8 +393,8 @@ const AppContent = ({ document }: AppContentProps) => {
     setModalConfig({
       isOpen: true,
       type: 'danger',
-      title: `Delete List -  ${target.title}`,
-      message: `Are you absolutely sure you want to delete the list "${target.title}" and all its contents?`,
+      title: t('modal.deleteList.title', { title: target.title }),
+      message: t('modal.deleteList.message', { title: target.title }),
       onConfirm: () => {
         const remainingLists = doc.lists.filter((list) => list.id !== listId);
         const fallbackListId = remainingLists[0]?.id ?? '';
@@ -360,8 +406,8 @@ const AppContent = ({ document }: AppContentProps) => {
           activeListId: fallbackListId,
         });
       },
-      confirmLabel: 'Yes, Delete!',
-      cancelLabel: 'No, Keep it',
+      confirmLabel: t('modal.confirmDelete'),
+      cancelLabel: t('modal.noKeep'),
     });
   };
 
@@ -440,8 +486,8 @@ const AppContent = ({ document }: AppContentProps) => {
     setModalConfig({
       isOpen: true,
       type: 'danger',
-      title: 'Delete Category',
-      message: `Delete the category "${title}" and all its subcategories and checklist items?`,
+      title: t('modal.deleteCategory.title'),
+      message: t('modal.deleteCategory.message', { title }),
       onConfirm: () => {
         updateDocument({
           ...doc,
@@ -455,8 +501,8 @@ const AppContent = ({ document }: AppContentProps) => {
           ),
         });
       },
-      confirmLabel: 'Yes, Delete!',
-      cancelLabel: 'No, Keep it',
+      confirmLabel: t('modal.confirmDelete'),
+      cancelLabel: t('modal.noKeep'),
     });
   };
 
@@ -467,8 +513,8 @@ const AppContent = ({ document }: AppContentProps) => {
     setModalConfig({
       isOpen: true,
       type: 'danger',
-      title: 'Delete Checked Items',
-      message: `Delete all checked items in "${title}"? This only affects this category's own checked items and cannot be undone.`,
+      title: t('modal.deleteChecked.title'),
+      message: t('modal.deleteChecked.message', { title }),
       onConfirm: () => {
         updateDocument({
           ...doc,
@@ -482,8 +528,8 @@ const AppContent = ({ document }: AppContentProps) => {
           ),
         });
       },
-      confirmLabel: 'Yes, Delete!',
-      cancelLabel: 'No, Keep it',
+      confirmLabel: t('modal.confirmDelete'),
+      cancelLabel: t('modal.noKeep'),
     });
   };
 
@@ -508,7 +554,7 @@ const AppContent = ({ document }: AppContentProps) => {
 
   const handleAddSubcategory = (parentCategory: Category) => {
     if (parentCategory.depth >= MAX_DEPTH) {
-      alert(`Nesting limit reached! Maximum nesting level is ${MAX_DEPTH}.`);
+      alert(t('category.nestingLimit', { level: MAX_DEPTH }));
       return;
     }
 
@@ -529,7 +575,7 @@ const AppContent = ({ document }: AppContentProps) => {
     if (starredView) {
       const target = findTodoAcrossLists(doc.lists, todoId);
       if (target && mutation(target).completed === true && !target.completed) {
-        showToast('success', 'Task completed');
+        showToast('success', t('task.completedToast'));
       }
     }
 
@@ -587,7 +633,13 @@ const AppContent = ({ document }: AppContentProps) => {
           ? moveTask(doc, moveEntity.todoId, target)
           : moveCategory(doc, moveEntity.categoryId, target);
     } catch (error) {
-      showToast('error', error instanceof Error ? error.message : 'This move is not allowed.');
+      showToast(
+        'error',
+        localizeErrorMessage(
+          t,
+          error instanceof Error ? error.message : 'This move is not allowed.'
+        )
+      );
       return;
     }
 
@@ -617,8 +669,13 @@ const AppContent = ({ document }: AppContentProps) => {
     showToast(
       'success',
       <>
-        {moveEntity.kind === 'task' ? 'Task' : 'Category'} <em className="toast-title">{moveModel.entityTitle}</em>{' '}
-        was moved to {describeMoveDestTitle(target, outcome.document)}.
+        {moveEntity.kind === 'task' ? t('task.entityTask') : t('task.entityCategory')}{' '}
+        <em className="toast-title">{moveModel.entityTitle}</em>{' '}
+        {interpolateRichNode(
+          t('task.movedToast'),
+          'dest',
+          describeMoveDestTitle(t, target, outcome.document)
+        )}
       </>
     );
   };
@@ -801,7 +858,9 @@ const AppContent = ({ document }: AppContentProps) => {
   const categoryTitlePrompt = useTextPrompt({
     isOpen: categoryPrompt !== null,
     placeholder:
-      categoryPrompt?.kind === 'subcategory' ? 'Subcategory title' : 'Category title',
+      categoryPrompt?.kind === 'subcategory'
+        ? t('prompt.subcategoryTitle')
+        : t('prompt.categoryTitle'),
     onConfirm: (value) => {
       if (categoryPrompt?.kind === 'subcategory') {
         confirmAddSubcategory(categoryPrompt.parentCategory, value);
@@ -816,7 +875,7 @@ const AppContent = ({ document }: AppContentProps) => {
   const listTitlePrompt = useTextPrompt({
     isOpen: listPrompt !== null,
     initialValue: listPrompt?.kind === 'rename' ? listPrompt.list.title : '',
-    placeholder: 'List title',
+    placeholder: t('prompt.listTitle'),
     maxLength: MAX_LIST_TITLE_LENGTH,
     onConfirm: (value) => {
       if (listPrompt?.kind === 'rename') {
@@ -923,7 +982,7 @@ const AppContent = ({ document }: AppContentProps) => {
   if (isLoading) {
     return (
       <div className="app-container">
-        <div className="empty-state">Loading...</div>
+        <div className="empty-state">{t('common.loading')}</div>
       </div>
     );
   }
@@ -957,12 +1016,12 @@ const AppContent = ({ document }: AppContentProps) => {
             <div className="list-header-row">
               <span className="list-title">{activeList.title}</span>
               <button className="btn btn-outline" onClick={handleAddRootCategory} type="button">
-                <Icon name="ri-add-line" />Add New Category
+                <Icon name="ri-add-line" />{t('app.addCategory')}
               </button>
             </div>
 
             {activeList.categories.length === 0 ? (
-              <div className="empty-state">Click "Category" to get started.</div>
+              <div className="empty-state">{t('app.emptyCategoryHint')}</div>
             ) : (
               <div className="categories-grid">
                 {activeList.categories.map((category) => renderCategory(category))}
@@ -972,8 +1031,8 @@ const AppContent = ({ document }: AppContentProps) => {
         ) : (
           <EmptyState
             icon="ri-book-open-line"
-            title="Every story starts with a blank page."
-            subtitle="Create your first list and give your notes, plans, and ideas a home."
+            title={t('app.empty.title')}
+            subtitle={t('app.empty.subtitle')}
           />
         )}
       </main>
@@ -984,10 +1043,10 @@ const AppContent = ({ document }: AppContentProps) => {
             className={`tab-item starred-tab ${starredView ? 'active' : ''}`}
             onClick={handleStarredClick}
             type="button"
-            title={`Starred (${starredEntries.length})`}
+            title={t('app.starredTab', { count: starredEntries.length })}
           >
             <Icon name={starredView ? 'ri-star-fill' : 'ri-star-line'} className="starred-tab-icon" />
-            <span className="starred-tab-label">Starred</span>
+            <span className="starred-tab-label">{t('app.starred')}</span>
             <span className="starred-tab-label-count">
               {starredEntries.length}
             </span>
@@ -995,36 +1054,41 @@ const AppContent = ({ document }: AppContentProps) => {
         )}
 
         <div className="tab-list" ref={tabListRef}>
-          {doc?.lists.map((list, index) => (
+          {doc?.lists.map((list) => (
             <button
               key={list.id}
               className={`tab-item ${list.id === activeListId ? 'active' : ''}`}
               onClick={() => handleTabClick(list.id)}
               type="button"
             >
-              <span>{list.title}<br /> <span className='tab-list-item-index'>{index + 1}</span></span>
+              {list.title}
+              {/* <span>{list.title}<br /> <span className='tab-list-item-index'>{index + 1}</span></span> */}
             </button>
           ))}
 
           <button className="tab-item add-tab" onClick={handleAddList} type="button">
-            <Icon name="ri-add-line" /> List
+            <Icon name="ri-add-line" /> {t('app.addList')}
           </button>
 
-          <input
-            ref={importFileInputRef}
-            type="file"
-            accept=".json,application/json"
-            onChange={handleImportJson}
-            hidden
-          />
-          <button
-            className="tab-item add-tab"
-            type="button"
-            title="Import TextBook JSON into a new list"
-            onClick={() => importFileInputRef.current?.click()}
-          >
-            <Icon name="ri-file-upload-line" /> Import JSON
-          </button>
+          {!hideImportFeature && (
+            <>
+              <input
+                ref={importFileInputRef}
+                type="file"
+                accept=".json,application/json"
+                onChange={handleImportJson}
+                hidden
+              />
+              <button
+                className="tab-item add-tab"
+                type="button"
+                title={t('app.importJsonTooltip')}
+                onClick={() => importFileInputRef.current?.click()}
+              >
+                <Icon name="ri-file-upload-line" /> {t('app.importJson')}
+              </button>
+            </>
+          )}
         </div>
 
         {hasLists && (
@@ -1034,7 +1098,7 @@ const AppContent = ({ document }: AppContentProps) => {
               className="tab-options-button"
               onClick={toggleTabMenu}
               type="button"
-              title="View and reorder lists"
+              title={t('app.listOptions')}
             >
               <Icon name="ri-list-settings-line" />
             </button>
@@ -1052,9 +1116,9 @@ const AppContent = ({ document }: AppContentProps) => {
                   '--tab-menu-top': `${tabMenuPos.top}px`,
                 } as CSSProperties}
               >
-                <div className="tab-options-menu-footer">Drag to reorder lists</div>
+                <div className="tab-options-menu-footer">{t('app.dragToReorder')}</div>
                 {doc.lists.length === 0 ? (
-                  <div className="tab-options-empty">No lists yet.</div>
+                  <div className="tab-options-empty">{t('app.noListsYet')}</div>
                 ) : (
                   <ReorderList
                     items={doc.lists}
@@ -1067,7 +1131,7 @@ const AppContent = ({ document }: AppContentProps) => {
                           onClick={() => handleSelectList(list.id)}
                           onPointerDown={(e) => e.stopPropagation()}
                           type="button"
-                          title={`Go to ${list.title}`}
+                          title={t('app.goToList', { title: list.title })}
                         >
                           {list.title}
                         </button>
@@ -1079,7 +1143,7 @@ const AppContent = ({ document }: AppContentProps) => {
                           onClick={() => handleEditList(list.id)}
                           onPointerDown={(e) => e.stopPropagation()}
                           type="button"
-                          title="Rename list"
+                          title={t('app.renameList')}
                         >
                           <Icon name="ri-pencil-line" />
                         </button>
@@ -1088,7 +1152,7 @@ const AppContent = ({ document }: AppContentProps) => {
                           onClick={() => handleDeleteList(list.id)}
                           onPointerDown={(e) => e.stopPropagation()}
                           type="button"
-                          title="Delete list"
+                          title={t('app.deleteList')}
                         >
                           <Icon name="ri-delete-bin-line" />
                         </button>
@@ -1102,7 +1166,11 @@ const AppContent = ({ document }: AppContentProps) => {
 
                 {showDocDiagnostics && docDiagnostics && (
                   <div className="tab-options-menu-stats">
-                    {`${docDiagnostics.sizeKb} KB · ${docDiagnostics.lines} lines · ${docDiagnostics.tasks} tasks`}
+                    {t('app.diagnostics', {
+                      sizeKb: docDiagnostics.sizeKb,
+                      lines: docDiagnostics.lines,
+                      tasks: docDiagnostics.tasks,
+                    })}
                   </div>
                 )}
               </div>
@@ -1134,10 +1202,14 @@ const AppContent = ({ document }: AppContentProps) => {
       <Modal
         isOpen={categoryPrompt !== null}
         onClose={() => setCategoryPrompt(null)}
-        title={categoryPrompt?.kind === 'subcategory' ? 'Add Subcategory' : 'Add Category'}
+        title={
+          categoryPrompt?.kind === 'subcategory'
+            ? t('modal.addSubcategory')
+            : t('modal.addCategory')
+        }
         message=""
         type="info"
-        confirmLabel="Save"
+        confirmLabel={t('common.save')}
         onConfirm={categoryTitlePrompt.onPrimary}
         confirmDisabled={!categoryTitlePrompt.canConfirm}
       >
@@ -1147,10 +1219,10 @@ const AppContent = ({ document }: AppContentProps) => {
       <Modal
         isOpen={listPrompt !== null}
         onClose={() => setListPrompt(null)}
-        title={listPrompt?.kind === 'rename' ? 'Rename List' : 'Add List'}
+        title={listPrompt?.kind === 'rename' ? t('modal.renameList') : t('modal.addList')}
         message=""
         type="info"
-        confirmLabel="Save"
+        confirmLabel={t('common.save')}
         onConfirm={listTitlePrompt.onPrimary}
         confirmDisabled={!listTitlePrompt.canConfirm}
       >
@@ -1159,7 +1231,7 @@ const AppContent = ({ document }: AppContentProps) => {
 
       {moveModel && (
         <MoveModal
-          title={`Move "${moveModel.entityTitle}" to ...`}
+          title={t('modal.moveTo', { title: moveModel.entityTitle })}
           sections={moveModel.sections}
           onClose={() => setMoveEntity(null)}
           onMove={handleMoveConfirm}
@@ -1173,9 +1245,11 @@ export default function App() {
   const document = useDocument();
 
   return (
-    <DriveSyncProvider document={document}>
-      <AppContent document={document} />
-    </DriveSyncProvider>
+    <I18nProvider>
+      <DriveSyncProvider document={document}>
+        <AppContent document={document} />
+      </DriveSyncProvider>
+    </I18nProvider>
   );
 }
 

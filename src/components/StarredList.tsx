@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Icon } from './Icon';
 import { EmptyState } from './EmptyState';
+import { useI18n } from '../i18n';
 import type { StarredItemEntry } from '../utils/categoryUtils';
 
 export interface StarredListProps {
@@ -43,6 +44,7 @@ interface StarredGroup {
  * collectStarredItems only keeps currently-starred, unchecked todos.
  */
 export const StarredList = ({ entries, onOpenList, renderTodoItem }: StarredListProps) => {
+  const { t } = useI18n();
   // Group by source list (document order), then by category context within it.
   const groups: StarredGroup[] = [];
   const groupIndex = new Map<string, number>();
@@ -68,8 +70,8 @@ export const StarredList = ({ entries, onOpenList, renderTodoItem }: StarredList
       {groups.length === 0 ? (
         <EmptyState
           icon="ri-star-line"
-          title="Nothing starred yet"
-          subtitle="Tap the star on any task to keep it here for quick access."
+          title={t('app.starredEmpty.title')}
+          subtitle={t('app.starredEmpty.subtitle')}
         />
       ) : (
         <div className="starred-groups">
@@ -79,7 +81,7 @@ export const StarredList = ({ entries, onOpenList, renderTodoItem }: StarredList
                 className="starred-group-header"
                 onClick={() => onOpenList(group.listId)}
                 type="button"
-                title={`Open "${group.listTitle}"`}
+                title={t('app.openList', { title: group.listTitle })}
               >
                 <Icon name="ri-arrow-right-up-line" className="starred-group-icon" />
                 <span className="starred-group-title">{group.listTitle}</span>

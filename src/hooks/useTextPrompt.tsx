@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { MAX_CATEGORY_TITLE_LENGTH } from '../utils';
+import { useI18n } from '../i18n';
 
 export interface UseTextPromptOptions {
   isOpen: boolean;
@@ -42,6 +43,7 @@ export function useTextPrompt({
 }: UseTextPromptOptions): UseTextPromptReturn {
   const [value, setValue] = useState(initialValue);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useI18n();
 
   // Reset to the target value each time the dialog (re)opens so the rename
   // pre-fill and a previously-typed value never leak between invocations.
@@ -101,7 +103,7 @@ export function useTextPrompt({
         </span>
       </div>
       <p className="modal-text-input-hint">
-        {helperText ?? `Maximum ${maxLength} characters.`}
+        {helperText ?? t('prompt.maxCharacters', { count: maxLength })}
       </p>
     </>
   );
