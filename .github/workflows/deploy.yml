@@ -16,11 +16,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
+  # Build the app and upload the `github-pages` artifact. Building and
+  # deploying in SEPARATE jobs matters: actions/upload-pages-artifact@v3 uses
+  # actions/upload-artifact@v4, which finalizes artifacts in the job's post-step.
+  # If the upload and deploy run in the SAME job, actions/deploy-pages can query
+  # for the artifact before it is visible and fails with "No artifacts named
+  # 'github-pages' were found". Two jobs guarantee the artifact is finalized first.
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -41,13 +43,22 @@ jobs:
         env:
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
 
       - name: Deploy
         id: deployment
